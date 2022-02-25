@@ -221,7 +221,7 @@ def main(args):
         print(data)
         # df_energy = df_energy.append(data, True)
         df_energy_new = pd.DataFrame([data])
-        df_energy_new.to_csv(args.log, mode="a", header=False, index=False)
+        df_energy_new.to_csv(args.log, mode="a", header=False, index=False, date_format="%Y-%m-%d %H:%M:%S.%f", float_format="%.2f")
         # df_energy = pd.concat([df_energy, df_energy_new], ignore_index=True, axis=0, join='outer')
         # df_energy.to_csv(args.log, mode="a", header=False, index=False)
         # print(pw_obj2.timestamp)

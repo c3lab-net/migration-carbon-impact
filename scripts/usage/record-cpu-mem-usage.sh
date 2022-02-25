@@ -9,7 +9,7 @@ echo >&2 "Recording CPU/memory usage for the next "$END_TIME"s ..."
 
 function write_cpu_mem_usage()
 {
-    timestamp="$(date +'%Y-%m-%dT%H:%M:%S.%3N%z')"
+    timestamp="$(date +'%Y-%m-%d %H:%M:%S.%6N')"
     line=$(echo -n "$timestamp,")
     cpu_and_mem_line=$(top -n 1 -b | head -n 4 | tail -n 2)
     cpu_line=$(echo "$cpu_and_mem_line" | head -n 1)
