@@ -1,11 +1,11 @@
 #!/bin/zsh
 
-LOGFILE=cpu-mem-usage.log
+LOGFILE=${1:-"cpu-mem-usage.log"}
 SAMPLE_INTERVAL=1
 
-END_TIME=${1:-86400}
+END_TIME=${2:-86400}
 
-echo >&2 "Recording CPU/memory usage for the next "$END_TIME"s ..."
+echo >&2 "Recording CPU/memory usage to \"$LOGFILE\" for the next "$END_TIME"s ..."
 
 function write_cpu_mem_usage()
 {
