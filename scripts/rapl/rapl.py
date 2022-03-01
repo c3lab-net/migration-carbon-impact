@@ -170,12 +170,12 @@ class RAPLMonitor(object):
         return RAPLSample.get_power_sample()
 
 def main(args):
-    if (not is_rapl_compatible):
+    if (not is_rapl_compatible()):
         raise ValueError("RAPL is not supported")
 
-    df_energy = pd.DataFrame(columns=['timestamp', 'total_intel_energy', 'total_cpu_energy', 'total_dram_energy', 'total_gpu_energy'])
-    df_energy.to_csv(args.log, mode="w", header=True, index=False)
-    data = {}
+    # df_energy = pd.DataFrame(columns=sorted(['timestamp', 'total_intel_energy', 'total_cpu_energy', 'total_dram_energy', 'total_gpu_energy', 'package-0', 'package-0.dram', 'package-1', 'package-1.dram']))
+    # df_energy.to_csv(args.log, mode="w", header=True, index=False)
+    first_line = True
     while(True):
         pw_obj1 = RAPLMonitor.sample()
         time.sleep(1)
@@ -186,6 +186,7 @@ def main(args):
         total_cpu_energy = 0
         total_gpu_energy = 0
 
+        energy_by_domain = {}
         for d in diff.domains:
             domain = diff.domains[d]
             # print(domain.name)
@@ -199,29 +200,36 @@ def main(args):
                 raise NotImplementedError(
                     "Unexpected top level domain for RAPL package. Not yet supported."
                 )
-                
+            energy_by_domain[domain.name] = energy
             total_intel_energy += energy
 
             for sd in domain.subdomains:
                 subdomain = domain.subdomains[sd]
                 power = diff.average_energy(package=domain.name, domain=subdomain.name)
                 subdomain = subdomain.name.lower()
+                energy_by_domain['%s.%s' % (domain.name, subdomain)] = power
                 if subdomain == "ram" or subdomain == "dram":
                     total_dram_energy += power
                 elif subdomain == "cores" or subdomain == "cpu":
                     total_cpu_energy += power
                 elif subdomain == "gpu":
                     total_gpu_energy += power
-
+        data = {}
         data['timestamp'] = pw_obj2.timestamp
         data['total_intel_energy'] = total_intel_energy
         data['total_cpu_energy'] = total_intel_energy - total_dram_energy
         data['total_dram_energy'] = total_dram_energy
         data['total_gpu_energy'] = total_gpu_energy
+        for domain in energy_by_domain:
+            data[domain] = energy_by_domain[domain]
+        # data = sorted(data)
         print(data)
         # df_energy = df_energy.append(data, True)
         df_energy_new = pd.DataFrame([data])
-        df_energy_new.to_csv(args.log, mode="a", header=False, index=False, date_format="%Y-%m-%d %H:%M:%S.%f", float_format="%.2f")
+        df_energy_new.to_csv(args.log, mode="w" if first_line else "a",
+            header=first_line,
+            index=False, date_format="%Y-%m-%d %H:%M:%S.%f", float_format="%.2f")
+        first_line = False
         # df_energy = pd.concat([df_energy, df_energy_new], ignore_index=True, axis=0, join='outer')
         # df_energy.to_csv(args.log, mode="a", header=False, index=False)
         # print(pw_obj2.timestamp)
