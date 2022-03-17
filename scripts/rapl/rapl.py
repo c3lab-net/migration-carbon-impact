@@ -223,7 +223,8 @@ def main(args):
         for domain in energy_by_domain:
             data[domain] = energy_by_domain[domain]
         # data = sorted(data)
-        print(data)
+        if not args.quiet:
+            print(data)
         # df_energy = df_energy.append(data, True)
         df_energy_new = pd.DataFrame([data])
         df_energy_new.to_csv(args.log, mode="w" if first_line else "a",
@@ -251,6 +252,7 @@ def parse_args():
     """Parse commandline arguments"""
     parser = argparse.ArgumentParser(description='Run RAPL Monitor')
     parser.add_argument('--log', '-l', type=str, help='RAPL Log')
+    parser.add_argument('--quiet', '-q', action='store_true', help='Supress console output')
     args = parser.parse_args()
     return args
 

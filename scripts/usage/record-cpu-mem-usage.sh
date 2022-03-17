@@ -1,5 +1,16 @@
 #!/bin/zsh
 
+QUIET=
+for arg in "$@"
+do
+case $arg in
+    -q|--quiet)
+        shift
+        QUIET="true"
+        ;;
+esac
+done
+
 LOGFILE=${1:-"cpu-mem-usage.log"}
 SAMPLE_INTERVAL=1
 
@@ -18,7 +29,11 @@ function write_cpu_mem_usage()
     line+=$(echo $cpu_line | awk '{printf "%.1f,%.1f,%.1f,", $2+$6, $4, $8}')
     # 8: used, 6: free
     line+=$(echo $mem_line | awk '{printf "%.1f,%.1f\n", $8, $6}')
-    echo $line | tee -a $LOGFILE
+    if [[ $QUIET == "true" ]]; then
+        echo $line | tee -a $LOGFILE > /dev/null
+    else
+        echo $line | tee -a $LOGFILE
+    fi
 }
 
 echo "timestamp,cpu-user,cpu-kernel,cpu-idle,mem-used,mem-free" > $LOGFILE
