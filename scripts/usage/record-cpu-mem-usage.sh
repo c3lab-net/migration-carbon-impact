@@ -16,7 +16,9 @@ SAMPLE_INTERVAL=1
 
 END_TIME=${2:-86400}
 
-echo >&2 "Recording CPU/memory usage to \"$LOGFILE\" for the next "$END_TIME"s ..."
+if ! [[ $QUIET == "true" ]]; then
+    echo >&2 "Recording CPU/memory usage to \"$LOGFILE\" for the next "$END_TIME"s ..."
+fi
 
 function write_cpu_mem_usage()
 {
