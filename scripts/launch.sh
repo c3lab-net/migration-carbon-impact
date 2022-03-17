@@ -2,7 +2,7 @@
 
 cwd=$(pwd)
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(dirname "$0")"
 
 MAXJOBS=1
 name="default"
@@ -34,14 +34,14 @@ cmd="$@"
 set -e
 # set -x
 
-sudo ./rapl/rapl.py --quiet --log /tmp/$name.rapl.csv &
+sudo $SCRIPT_DIR/rapl/rapl.py --quiet --log /tmp/$name.rapl.csv &
 sleep 1
 pid_rapl=$(echo $(ps --ppid $! -o pid=))
 
-./usage/record-cpu-mem-usage.sh --quiet /tmp/$name.usage.csv &
+$SCRIPT_DIR/usage/record-cpu-mem-usage.sh --quiet /tmp/$name.usage.csv &
 pid_usage=$(echo $!)
 
-./parallel/run-multiple-instances.sh $(echo "$parallel_args") -j $MAXJOBS "$@"
+$SCRIPT_DIR/parallel/run-multiple-instances.sh $(echo "$parallel_args") -j $MAXJOBS "$@"
 sudo kill $pid_rapl $pid_usage
 
 sudo chown $(id -u):$(id -g) /tmp/$name.{rapl,usage}.csv
