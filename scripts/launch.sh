@@ -5,6 +5,7 @@ cwd=$(pwd)
 SCRIPT_DIR="$(dirname "$0")"
 
 MAXJOBS=1
+SLEEP=10
 name="default"
 
 parallel_args=""
@@ -26,6 +27,11 @@ case $arg in
         shift
         parallel_args+="-N "
         ;;
+    -S|--sleep)
+        shift
+        SLEEP=$1
+        shift
+        ;;
 esac
 done
 
@@ -41,7 +47,9 @@ pid_rapl=$(echo $(ps --ppid $! -o pid=))
 $SCRIPT_DIR/usage/record-cpu-mem-usage.sh --quiet /tmp/$name.usage.csv &
 pid_usage=$(echo $!)
 
+sleep $SLEEP
 $SCRIPT_DIR/parallel/run-multiple-instances.sh $(echo "$parallel_args") -j $MAXJOBS "$@"
+sleep $SLEEP
 sudo kill $pid_rapl $pid_usage
 
 sudo chown $(id -u):$(id -g) /tmp/$name.{rapl,usage}.csv
