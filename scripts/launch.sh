@@ -37,7 +37,7 @@ done
 
 cmd="$@"
 
-set -e
+# set -e
 # set -x
 
 sudo $SCRIPT_DIR/rapl/rapl.py --quiet --log /tmp/$name.rapl.csv &
@@ -48,7 +48,11 @@ $SCRIPT_DIR/usage/record-cpu-mem-usage.sh --quiet /tmp/$name.usage.csv &
 pid_usage=$(echo $!)
 
 sleep $SLEEP
-$SCRIPT_DIR/parallel/run-multiple-instances.sh $(echo "$parallel_args") -j $MAXJOBS "$@"
+if [[ $MAXJOBS -gt 1 ]]; then
+    $SCRIPT_DIR/parallel/run-multiple-instances.sh $(echo "$parallel_args") -j $MAXJOBS "$@"
+else
+    zsh -c "$@"
+fi
 sleep $SLEEP
 sudo kill $pid_rapl $pid_usage
 
