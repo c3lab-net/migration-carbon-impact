@@ -5,6 +5,10 @@ set -e
 
 # Source: https://github.com/Intel-bigdata/HiBench/blob/master/docs/build-hibench.md
 
+# Java 11 throws strange error in mvn build process, so change to java 8.
+sudo apt-get remove --purge openjdk-11-'*'
+sudo apt-get install -y openjdk-8-jdk
+
 # Dependency #1: mvn
 sudo apt update
 sudo apt install -y maven
