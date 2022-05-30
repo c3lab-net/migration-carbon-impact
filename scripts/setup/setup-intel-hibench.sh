@@ -5,30 +5,141 @@ set -e
 
 # Source: https://github.com/Intel-bigdata/HiBench/blob/master/docs/build-hibench.md
 
+function download_and_extract_apache_software()
+{
+    suburl="$1"
+    dstdir="$2"
+
+    set -e
+    pushd "$(mktemp -d)"
+
+    echo "Downloading and verifying apache software from \"$suburl\" ..."
+    prefix="${suburl%/*}"
+    filename="${suburl##*/}"
+    mainfile="$filename"
+    checksumfile="$filename.sha512"
+    url_mainfile="https://dlcdn.apache.org/$prefix/$mainfile"
+    url_checksum="https://dlcdn.apache.org/$prefix/$checksumfile"
+    (set -x; wget $url_mainfile)
+    (set -x; wget $url_checksum)
+    cat "$checksumfile" | tr '\n' ' ' | sed 's/ //g' | awk -F ':' '{print tolower($2), $1}' | sha512sum -c - | grep OK
+    [ $? -eq 0 ] || { echo >&2 "Checksum failed"; exit 1 }
+
+    # echo "Extracting to \"$dstdir\" ..."
+    (set -x; tar zxf "$mainfile" -C "$dstdir")
+
+    rm *
+
+    popd
+}
+
 # Java 11 throws strange error in mvn build process, so change to java 8.
 sudo apt-get remove --purge openjdk-11-'*'
 sudo apt-get install -y openjdk-8-jdk
 
 # Dependency #1: mvn
-sudo apt update
-sudo apt install -y maven
+sudo apt-get update
+sudo apt-get install -y maven
 
 # Dependency #2: scala
 #   May not be necessary because Spark 3 comes with Scala.
-# sudo apt install -y default-jdk scala
+sudo apt-get install -y scala
 
-# Dependency #3: spark
+java -version; javac -version; scala -version; git --version
+
+# prepare install directory for Hadoop and Spark
+INSTALL_DIR="$HOME/opt"
+mkdir -p "$INSTALL_DIR"
+
+# Dependency #3: Hadoop
+sudo apt-get install -y ssh rsync
+HADOOP_SUBURL="hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz"
+download_and_extract_apache_software "$HADOOP_SUBURL" "$INSTALL_DIR"
+
+## Setup Hadoop
+function setup_hadoop()
+{
+    set -e
+
+    # Source: https://www.digitalocean.com/community/tutorials/how-to-install-hadoop-in-stand-alone-mode-on-ubuntu-20-04
+    echo >&2 "Setting JAVA_HOME in Hadoop config and testing hadoop ..."
+    HADOOP_NAME="${${HADOOP_SUBURL##*/}%.tar.gz}"
+    HADOOP_DIR="$INSTALL_DIR/$HADOOP_NAME"
+    JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    sed -i 's|^export JAVA_HOME=.*|export JAVA_HOME='"$JAVA_HOME"'|' "$HADOOP_DIR/etc/hadoop/hadoop-env.sh"
+    $HADOOP_DIR/bin/hadoop > /dev/null
+    [ $? -eq 0 ] || { echo >&2 "Failed to install Hadoop ..."; exit 1}
+    echo >&2 "Done"
+
+    # Source: https://hadoop.apache.org/docs/r2.10.1/hadoop-project-dist/hadoop-common/SingleCluster.html
+    # Test standalone operations
+    echo >&2 "Testing standalone Hadoop operations ..."
+    pushd "$(mktemp -d)"
+    mkdir input
+    cp $HADOOP_DIR/etc/hadoop/*.xml input/
+    hadoop_output="$($HADOOP_DIR/bin/hadoop jar $HADOOP_DIR/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+' 2>&1)"
+    [ $? -eq 0 ] || { echo >&2 "Failed to run Hadoop example ..."; exit 1}
+    echo "$hadoop_output" | grep Exception > /dev/null
+    [ $? -eq 1 ] || { echo >&2 "Exception occurred while running Hadoop example ..."; exit 1}
+    cat output/*
+    popd
+    echo >&2 "Done"
+
+    # Pseudo-Distributed Operation
+    echo >&2 "Enabling standalone Hadoop operations ..."
+    sed -i "/<configuration>/r"<(echo """    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://localhost:9000</value>
+    </property>""") -- $HADOOP_DIR/etc/hadoop/core-site.xml
+    sed -i "/<configuration>/r"<(echo """    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+    </property>""") -- $HADOOP_DIR/etc/hadoop/hdfs-site.xml
+    echo >&2 "Done"
+
+    echo >&2 "Testing passwordless ssh ..."
+    ssh localhost -f ':'
+    [ $? -eq 0 ] || { echo >&2 "Failed to ssh to localhost."; exit 1 }
+    echo >&2 "Done"
+
+    # Execution
+    echo >&2 "Testing single-node HDFS ..."
+    $HADOOP_DIR/bin/hdfs namenode -format
+    $HADOOP_DIR/sbin/start-dfs.sh
+    $HADOOP_DIR/bin/hdfs dfs -mkdir /user
+    $HADOOP_DIR/bin/hdfs dfs -mkdir /user/$USER
+    $HADOOP_DIR/bin/hdfs dfs -put etc/hadoop input
+    $HADOOP_DIR/bin/hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+'
+    hdfs_output="$($HADOOP_DIR/bin/hdfs dfs -cat output/'*')"
+    [ "$(echo "$hdfs_output" | wc -l)" -gt 1 ] || { echo "No output file in HDFS."; exit 1 }
+    echo >&2 "Done"
+
+    # YARN on a Single Node
+    echo >&2 "Enabling YARN on a Single Node ..."
+    echo """<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+    </property>
+</configuration>""" > $HADOOP_DIR/etc/hadoop/mapred-site.xml
+    sed -i "/<configuration>/r"<(echo """    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+    </property>""") -- $HADOOP_DIR/etc/hadoop/hdfs-site.xml
+    $HADOOP_DIR/sbin/start-yarn.sh
+    echo >&2 "Done"
+
+    $HADOOP_DIR/sbin/stop-yarn.sh
+    $HADOOP_DIR/sbin/stop-dfs.sh
+}
+
+setup_hadoop
+
+# Dependency #4: Spark
 #   From https://spark.apache.org/downloads.html
 #   Selected Spark 3.0.x and Hadoop 2.7 per https://github.com/Intel-bigdata/HiBench/blob/master/docs/run-sparkbench.md
-wget https://dlcdn.apache.org/spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz
-wget https://downloads.apache.org/spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz.sha512
-cat spark-3.0.3-bin-hadoop2.7.tgz.sha512 | tr '\n' ' ' | sed 's/ //g' | awk -F ':' '{print tolower($2), $1}' | sha512sum -c - | grep OK
-[ $? -eq 0 ] || { echo >&2 "Spark checksum failed"; exit 1 }
-rm spark-3.0.3-bin-hadoop2.7.tgz.sha512
-
-mkdir -p ~/opt
-tar zxf spark-3.0.3-bin-hadoop2.7.tgz -C ~/opt/
-rm spark-3.0.3-bin-hadoop2.7.tgz
+# download_and_extract_apache_software "spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz" "$HOME/opt"
+download_and_extract_apache_software "spark/spark-3.0.3/spark-3.0.3-bin-without-hadoop.tgz" "$HOME/opt"
 
 export SPARK_DIR="$HOME/opt/spark-3.0.3-bin-hadoop2.7"
 
