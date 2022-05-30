@@ -1,3 +1,6 @@
 [submodule "references/sprocket"]
 	path = references/sprocket
 	url = https://github.com/excamera/pipeline.git
+[submodule "references/Intel-HiBench"]
+	path = references/Intel-HiBench
+	url = https://github.com/Intel-bigdata/HiBench.git
