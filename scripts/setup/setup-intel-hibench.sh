@@ -56,23 +56,33 @@ sudo apt-get install -y ssh rsync
 HADOOP_SUBURL="hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz"
 download_and_extract_apache_software "$HADOOP_SUBURL" "$INSTALL_DIR"
 
-## Setup Hadoop
-function setup_hadoop()
-{
-    set -e
+HADOOP_NAMENODE="yeti-09"
+typeset -a HADOOP_DATANODES
+HADOOP_DATANODES=(
+    "yeti-02"
+    "yeti-03"
+)
+typeset -A NODE_IPs
+NODE_IPs["yeti-02"]="10.0.0.2"
+NODE_IPs["yeti-03"]="10.0.0.3"
+NODE_IPs["yeti-09"]="10.0.0.9"
 
+## Setup Hadoop
+function setup_hadoop_java()
+{
     # Source: https://www.digitalocean.com/community/tutorials/how-to-install-hadoop-in-stand-alone-mode-on-ubuntu-20-04
     echo >&2 "Setting JAVA_HOME in Hadoop config and testing hadoop ..."
     HADOOP_NAME="${${HADOOP_SUBURL##*/}%.tar.gz}"
-    HADOOP_DIR="$INSTALL_DIR/$HADOOP_NAME"
+    export HADOOP_DIR="$INSTALL_DIR/$HADOOP_NAME"
     JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
     sed -i 's|^export JAVA_HOME=.*|export JAVA_HOME='"$JAVA_HOME"'|' "$HADOOP_DIR/etc/hadoop/hadoop-env.sh"
     $HADOOP_DIR/bin/hadoop > /dev/null
     [ $? -eq 0 ] || { echo >&2 "Failed to install Hadoop ..."; exit 1}
     echo >&2 "Done"
+}
 
-    # Source: https://hadoop.apache.org/docs/r2.10.1/hadoop-project-dist/hadoop-common/SingleCluster.html
-    # Test standalone operations
+function test_hadoop_standalone()
+{
     echo >&2 "Testing standalone Hadoop operations ..."
     pushd "$(mktemp -d)"
     mkdir input
@@ -84,26 +94,54 @@ function setup_hadoop()
     cat output/*
     popd
     echo >&2 "Done"
+}
 
-    # Pseudo-Distributed Operation
-    echo >&2 "Enabling standalone Hadoop operations ..."
+function setup_pseudo_distributed()
+{
+    echo >&2 "Enabling pseudo-distributed mode on a single node ..."
     sed -i "/<configuration>/r"<(echo """    <property>
         <name>fs.defaultFS</name>
-        <value>hdfs://localhost:9000</value>
+        <value>hdfs://$HADOOP_NAMENODE:8020</value>
     </property>""") -- $HADOOP_DIR/etc/hadoop/core-site.xml
     sed -i "/<configuration>/r"<(echo """    <property>
         <name>dfs.replication</name>
         <value>1</value>
     </property>""") -- $HADOOP_DIR/etc/hadoop/hdfs-site.xml
     echo >&2 "Done"
+}
 
-    echo >&2 "Testing passwordless ssh ..."
-    ssh localhost -f ':'
-    [ $? -eq 0 ] || { echo >&2 "Failed to ssh to localhost."; exit 1 }
+function setup_hostname_mapping()
+{
+    typeset -A hosts_ip_mapping
+    hosts_ip_mapping["hadoop-namenode"]="${NODE_IPs["$HADOOP_NAMENODE"]}"
+    hosts_ip_mapping["hadoop-resourcemanager"]="${NODE_IPs["$HADOOP_NAMENODE"]}"
+    datanode_id=1
+    print -l $HADOOP_DATANODES
+    print -l $NODE_IPs
+    for datanode in "${(@)HADOOP_DATANODES}"; do
+        hosts_ip_mapping["hadoop-datanode$datanode_id"]="${NODE_IPs["$datanode"]}"
+        datanode_id=$((datanode_id + 1))
+    done
+
+    for host ip in "${(@kv)hosts_ip_mapping}"; do
+        echo "host: $host, ip: $ip"
+        sudo sh -c "echo $ip $host >> /etc/hosts"
+    done
+}
+
+function enable_passwordless_ssh()
+{
+    echo >&2 "Testing passwordless ssh. Please enter yes at ssh prompts ..."
+    for node in "$HADOOP_NAMENODE" "${HADOOP_DATANODES[@]}"; do
+        ssh $node -f ':'
+        [ $? -eq 0 ] || { echo >&2 "Failed to ssh to localhost."; exit 1 }
+    done
     echo >&2 "Done"
+}
 
-    # Execution
-    echo >&2 "Testing single-node HDFS ..."
+function test_hdfs()
+{
+    echo >&2 "Testing HDFS with simple MapReduce job ..."
     $HADOOP_DIR/bin/hdfs namenode -format
     $HADOOP_DIR/sbin/start-dfs.sh
     $HADOOP_DIR/bin/hdfs dfs -mkdir /user
@@ -111,10 +149,13 @@ function setup_hadoop()
     $HADOOP_DIR/bin/hdfs dfs -put etc/hadoop input
     $HADOOP_DIR/bin/hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+'
     hdfs_output="$($HADOOP_DIR/bin/hdfs dfs -cat output/'*')"
+    $HADOOP_DIR/sbin/stop-dfs.sh
     [ "$(echo "$hdfs_output" | wc -l)" -gt 1 ] || { echo "No output file in HDFS."; exit 1 }
     echo >&2 "Done"
+}
 
-    # YARN on a Single Node
+function setup_yarn_single_node()
+{
     echo >&2 "Enabling YARN on a Single Node ..."
     echo """<configuration>
     <property>
@@ -128,9 +169,23 @@ function setup_hadoop()
     </property>""") -- $HADOOP_DIR/etc/hadoop/hdfs-site.xml
     $HADOOP_DIR/sbin/start-yarn.sh
     echo >&2 "Done"
-
     $HADOOP_DIR/sbin/stop-yarn.sh
-    $HADOOP_DIR/sbin/stop-dfs.sh
+}
+
+function setup_hadoop()
+{
+    set -e
+    setup_hadoop_java
+
+    # # Source: https://hadoop.apache.org/docs/r2.10.1/hadoop-project-dist/hadoop-common/SingleCluster.html
+    test_hadoop_standalone
+    setup_pseudo_distributed
+    setup_hostname_mapping
+    enable_passwordless_ssh
+
+    test_hdfs
+
+    setup_yarn_single_node
 }
 
 setup_hadoop
