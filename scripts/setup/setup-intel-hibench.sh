@@ -3,6 +3,9 @@
 set -e
 # set -x
 
+cd "$(dirname "$0")"
+SCRIPT_DIR="$(pwd)"
+
 # Source: https://github.com/Intel-bigdata/HiBench/blob/master/docs/build-hibench.md
 
 function download_and_extract_apache_software()
@@ -174,6 +177,40 @@ function setup_yarn_single_node()
     $HADOOP_DIR/sbin/stop-yarn.sh
 }
 
+function setup_multinode()
+{
+    set -e
+
+    # Source: https://hadoop.apache.org/docs/r2.10.1/hadoop-project-dist/hadoop-common/ClusterSetup.html
+    echo >&2 "Setting up Hadoop for cluster deployment ..."
+    HADOOP_DATA_DIR="/data/hadoop/data.dir"
+    mkdir -p $HADOOP_DATA_DIR
+    echo > $HADOOP_DIR/etc/hadoop/slaves
+    datanode_id=1
+    for datanode in "${(@)HADOOP_DATANODES}"; do
+        datanode_name="hadoop-datanode$datanode_id"
+        echo $datanode_name > $HADOOP_DIR/etc/hadoop/slaves
+        ssh $datanode_name "mkdir -p $HADOOP_DATA_DIR"
+        datanode_id=$((datanode_id + 1))
+    done
+    cp "$SCRIPT_DIR/hadoop-config/*.xml" "$HADOOP_DIR/etc/hadoop/"
+    echo >&2 "Done"
+
+    echo >&2 "Testing Hadoop cluster ..."
+    echo >&2 "Starting Hadoop cluster ..."
+    $HADOOP_DIR/bin/hdfs namenode -format my-cluster
+    $HADOOP_DIR/sbin/start-dfs.sh
+    $HADOOP_DIR/sbin/start-yarn.sh
+    $HADOOP_DIR/sbin/mr-jobhistory-daemon.sh --config $HADOOP_DIR start historyserver
+    echo >&2 "Done"
+
+    echo >&2 "Stopping Hadoop cluster ..."
+    $HADOOP_DIR/sbin/stop-dfs.sh
+    $HADOOP_DIR/sbin/stop-yarn.sh
+    $HADOOP_DIR/sbin/mr-jobhistory-daemon.sh --config $HADOOP_DIR stop historyserver
+    echo >&2 "Done"
+}
+
 function setup_hadoop()
 {
     set -e
@@ -190,6 +227,8 @@ function setup_hadoop()
     test_hdfs
 
     setup_yarn_single_node
+
+    setup_multinode
 }
 
 setup_hadoop
