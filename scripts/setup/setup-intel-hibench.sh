@@ -89,9 +89,11 @@ function test_hadoop_standalone()
     cp $HADOOP_DIR/etc/hadoop/*.xml input/
     hadoop_output="$($HADOOP_DIR/bin/hadoop jar $HADOOP_DIR/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+' 2>&1)"
     [ $? -eq 0 ] || { echo >&2 "Failed to run Hadoop example ..."; exit 1}
+    hadoop_output="$(echo "$hadoop_output" | tr '\n' ' ')"
     echo "$hadoop_output" | grep Exception > /dev/null
     [ $? -eq 1 ] || { echo >&2 "Exception occurred while running Hadoop example ..."; exit 1}
-    cat output/*
+    result_count=$(cat output/* | wc -l)
+    [ $result_count -gt 0 ] || { echo >&2 "Empty result in Hadoop example ..."; exit 1}
     popd
     echo >&2 "Done"
 }
@@ -101,7 +103,7 @@ function setup_pseudo_distributed()
     echo >&2 "Enabling pseudo-distributed mode on a single node ..."
     sed -i "/<configuration>/r"<(echo """    <property>
         <name>fs.defaultFS</name>
-        <value>hdfs://$HADOOP_NAMENODE:8020</value>
+        <value>hdfs://hadoop-namenode:8020</value>
     </property>""") -- $HADOOP_DIR/etc/hadoop/core-site.xml
     sed -i "/<configuration>/r"<(echo """    <property>
         <name>dfs.replication</name>
@@ -116,15 +118,15 @@ function setup_hostname_mapping()
     hosts_ip_mapping["hadoop-namenode"]="${NODE_IPs["$HADOOP_NAMENODE"]}"
     hosts_ip_mapping["hadoop-resourcemanager"]="${NODE_IPs["$HADOOP_NAMENODE"]}"
     datanode_id=1
-    print -l $HADOOP_DATANODES
-    print -l $NODE_IPs
+    # print -l $HADOOP_DATANODES
+    # print -l $NODE_IPs
     for datanode in "${(@)HADOOP_DATANODES}"; do
         hosts_ip_mapping["hadoop-datanode$datanode_id"]="${NODE_IPs["$datanode"]}"
         datanode_id=$((datanode_id + 1))
     done
 
     for host ip in "${(@kv)hosts_ip_mapping}"; do
-        echo "host: $host, ip: $ip"
+        # echo "host: $host, ip: $ip"
         sudo sh -c "echo $ip $host >> /etc/hosts"
     done
 }
@@ -146,8 +148,8 @@ function test_hdfs()
     $HADOOP_DIR/sbin/start-dfs.sh
     $HADOOP_DIR/bin/hdfs dfs -mkdir /user
     $HADOOP_DIR/bin/hdfs dfs -mkdir /user/$USER
-    $HADOOP_DIR/bin/hdfs dfs -put etc/hadoop input
-    $HADOOP_DIR/bin/hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+'
+    $HADOOP_DIR/bin/hdfs dfs -put $HADOOP_DIR/etc/hadoop input
+    $HADOOP_DIR/bin/hadoop jar $HADOOP_DIR/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+'
     hdfs_output="$($HADOOP_DIR/bin/hdfs dfs -cat output/'*')"
     $HADOOP_DIR/sbin/stop-dfs.sh
     [ "$(echo "$hdfs_output" | wc -l)" -gt 1 ] || { echo "No output file in HDFS."; exit 1 }
@@ -175,9 +177,11 @@ function setup_yarn_single_node()
 function setup_hadoop()
 {
     set -e
+    # set -x
     setup_hadoop_java
 
     # # Source: https://hadoop.apache.org/docs/r2.10.1/hadoop-project-dist/hadoop-common/SingleCluster.html
+    set +e
     test_hadoop_standalone
     setup_pseudo_distributed
     setup_hostname_mapping
