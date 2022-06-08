@@ -55,6 +55,7 @@ else
 fi
 sleep $SLEEP
 sudo kill $pid_rapl $pid_usage
+sleep 1
 
 sudo chown $(id -u):$(id -g) /tmp/$name.{rapl,usage}.csv
 mv /tmp/$name.{rapl,usage}.csv "$cwd/"
