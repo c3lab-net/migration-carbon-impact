@@ -1,1 +1,3 @@
 /data/
+/workloads/ML/imagenet_classes.txt
+/workloads/ML/LOC_synset_mapping.json
