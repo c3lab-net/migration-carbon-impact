@@ -46,7 +46,10 @@ sudo apt-get install -y maven
 
 # Dependency #2: scala
 #   May not be necessary because Spark 3 comes with Scala.
-sudo apt-get install -y scala
+# sudo apt-get install -y scala
+# HiBench requires scala 2.12+
+wget https://downloads.lightbend.com/scala/2.12.2/scala-2.12.2.deb
+sudo dpkg -i scala-2.12.2.deb
 
 java -version; javac -version; scala -version; git --version
 
@@ -90,7 +93,7 @@ function test_hadoop_standalone()
     pushd "$(mktemp -d)"
     mkdir input
     cp $HADOOP_DIR/etc/hadoop/*.xml input/
-    hadoop_output="$($HADOOP_DIR/bin/hadoop jar $HADOOP_DIR/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+' 2>&1)"
+    hadoop_output="$($HADOOP_DIR/bin/hadoop jar $HADOOP_DIR/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar grep input output 'dfs[a-z.]+' 2>&1)"
     [ $? -eq 0 ] || { echo >&2 "Failed to run Hadoop example ..."; exit 1}
     hadoop_output="$(echo "$hadoop_output" | tr '\n' ' ')"
     echo "$hadoop_output" | grep Exception > /dev/null
@@ -152,7 +155,7 @@ function test_hdfs()
     $HADOOP_DIR/bin/hdfs dfs -mkdir /user
     $HADOOP_DIR/bin/hdfs dfs -mkdir /user/$USER
     $HADOOP_DIR/bin/hdfs dfs -put $HADOOP_DIR/etc/hadoop input
-    $HADOOP_DIR/bin/hadoop jar $HADOOP_DIR/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.10.1.jar grep input output 'dfs[a-z.]+'
+    $HADOOP_DIR/bin/hadoop jar $HADOOP_DIR/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar grep input output 'dfs[a-z.]+'
     hdfs_output="$($HADOOP_DIR/bin/hdfs dfs -cat output/'*')"
     $HADOOP_DIR/sbin/stop-dfs.sh
     [ "$(echo "$hdfs_output" | wc -l)" -gt 1 ] || { echo "No output file in HDFS."; exit 1 }
@@ -201,13 +204,13 @@ function setup_multinode()
     $HADOOP_DIR/bin/hdfs namenode -format my-cluster
     $HADOOP_DIR/sbin/start-dfs.sh
     $HADOOP_DIR/sbin/start-yarn.sh
-    $HADOOP_DIR/sbin/mr-jobhistory-daemon.sh --config $HADOOP_DIR start historyserver
+    $HADOOP_DIR/bin/mapred --daemon start historyserver
     echo >&2 "Done"
 
     echo >&2 "Stopping Hadoop cluster ..."
     $HADOOP_DIR/sbin/stop-dfs.sh
     $HADOOP_DIR/sbin/stop-yarn.sh
-    $HADOOP_DIR/sbin/mr-jobhistory-daemon.sh --config $HADOOP_DIR stop historyserver
+    $HADOOP_DIR/bin/mapred --daemon stop historyserver
     echo >&2 "Done"
 }
 
