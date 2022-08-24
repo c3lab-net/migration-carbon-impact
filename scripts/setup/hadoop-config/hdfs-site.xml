@@ -22,8 +22,16 @@
         <value>268435456</value>
     </property>
     <property>
+        <name>dfs.namenode.secondary.http-address</name>
+        <value>hadoop.${env.HOSTNAME}.namenode:9868</value>
+    </property>
+    <property>
+        <name>dfs.datanode.address</name>
+        <value>hadoop.${env.HOSTNAME}.namenode:9866</value>
+    </property>
+    <property>
         <name>dfs.namenode.name.dir</name>
-        <value>file:///data/hadoop/data.dir</value>
+        <value>file:///data/hadoop/name.dir</value>
     </property>
     <property>
         <name>dfs.datanode.data.dir</name>
@@ -33,5 +41,8 @@
         <name>dfs.namenode.handler.count</name>
         <value>100</value>
     </property>
-
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+    </property>
 </configuration>

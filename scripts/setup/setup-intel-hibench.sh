@@ -80,7 +80,7 @@ function setup_hadoop_java()
     echo >&2 "Setting JAVA_HOME in Hadoop config and testing hadoop ..."
     HADOOP_NAME="${${HADOOP_SUBURL##*/}%.tar.gz}"
     export HADOOP_DIR="$INSTALL_DIR/$HADOOP_NAME"
-    JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/jre/bin/java::")
     sed -i 's|^export JAVA_HOME=.*|export JAVA_HOME='"$JAVA_HOME"'|' "$HADOOP_DIR/etc/hadoop/hadoop-env.sh"
     $HADOOP_DIR/bin/hadoop > /dev/null
     [ $? -eq 0 ] || { echo >&2 "Failed to install Hadoop ..."; exit 1}
@@ -192,11 +192,13 @@ function setup_multinode()
     datanode_id=1
     for datanode in "${(@)HADOOP_DATANODES}"; do
         datanode_name="hadoop-datanode$datanode_id"
-        echo $datanode_name > $HADOOP_DIR/etc/hadoop/slaves
+        echo $datanode_name >> $HADOOP_DIR/etc/hadoop/slaves
         ssh $datanode_name "mkdir -p $HADOOP_DATA_DIR"
         datanode_id=$((datanode_id + 1))
     done
     cp "$SCRIPT_DIR/hadoop-config/*.xml" "$HADOOP_DIR/etc/hadoop/"
+    sed -i "s:\${env.HADOOP_HOME}:$HADOOP_DIR:g" "$HADOOP_DIR/etc/hadoop/*.xml"
+    sed -i "s:\${env.HOSTNAME}:$(hostname -s):g" "$HADOOP_DIR/etc/hadoop/*.xml"
     echo >&2 "Done"
 
     echo >&2 "Testing Hadoop cluster ..."
