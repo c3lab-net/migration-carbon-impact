@@ -50,8 +50,10 @@ pid_usage=$(echo $!)
 sleep $SLEEP
 if [[ $MAXJOBS -gt 1 ]]; then
     $SCRIPT_DIR/parallel/run-multiple-instances.sh $(echo "$parallel_args") -j $MAXJOBS "$@"
+    exitcode=$?
 else
-    zsh -c "$@"
+    "$@"
+    exitcode=$?
 fi
 sleep $SLEEP
 sudo kill $pid_rapl $pid_usage
@@ -59,3 +61,6 @@ sleep 1
 
 sudo chown $(id -u):$(id -g) /tmp/$name.{rapl,usage}.csv
 mv /tmp/$name.{rapl,usage}.csv "$cwd/"
+
+return $exitcode
+
