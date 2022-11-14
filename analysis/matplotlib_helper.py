@@ -86,3 +86,29 @@ def unique_everseen(seq, key=None):
     seen = set()
     seen_add = seen.add
     return [x for x,k in zip(seq,key) if not (k in seen or seen_add(k))]
+
+def plot_cdf_array(array, label, include_count = False, index=0, color=None):
+    x = sorted(array)
+    y = np.linspace(0., 1., len(array) + 1)[1:]
+    if include_count:
+        label += ' (%d)' % len(array)
+    if color is None:
+        color = get_next_color()
+    plt.plot(x, y, label=label, color=color, linestyle=get_linestyle(index))
+
+def plot_stacked_line(x, d_label_values, include_count = False, order=None, d_label_colors=None):
+    """This plots a series of stacked lines, ordered by the dictionary of labels and value arrays."""
+    labels = []
+    colors = []
+    all_values = []
+    if order is None:
+        order = list(d_label_values.keys())
+    for label in order:
+        all_values.append(d_label_values[label])
+        array = d_label_values[label]
+        if include_count:
+            label += ' (%d)' % len(array)
+        labels.append(label)
+        color = d_label_colors[label] if d_label_colors and label in d_label_colors else get_next_color()
+        colors.append(color)
+    plt.stackplot(x, all_values, baseline='zero', labels=labels, colors=colors)
