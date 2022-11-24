@@ -2,8 +2,23 @@
 
 import arrow
 import requests
+from dataclasses import dataclass
+from datetime import datetime
 
-def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow):
+@dataclass
+class TimestampdValue:
+    timestamp: datetime
+    value: float
+
+@dataclass
+class CarbonIntensityData:
+    cloud_vendor: str
+    region: str
+    iso: str
+    timeseries: list[TimestampdValue]
+
+
+def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow) -> CarbonIntensityData:
     url_get_carbon_intensity = 'http://yeti-09.sysnet.ucsd.edu/carbon-intensity/'
     response = requests.get(url_get_carbon_intensity, params={
         'latitude': latitude,
@@ -13,21 +28,15 @@ def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: a
     })
     assert response.ok, "Carbon intensity lookup failed (%d): %s" % (response.status_code, response.text)
     response_json = response.json()
-    electricity_region = response_json['region']
-    print('region:', electricity_region)
+    iso = response_json['region']
+    print('iso:', iso)
     carbon_intensities = response_json['carbon_intensities']
-    data_timeseries = []
+    timeseries = []
     for element in carbon_intensities:
         timestamp = arrow.get(element['timestamp']).datetime
         carbon_intensity = float(element['carbon_intensity'])
-        data_timeseries.append({
-            'timestamp': timestamp,
-            'carbon_intensity': carbon_intensity,
-        })
-    return {
-        'iso': electricity_region,
-        'data': data_timeseries,
-    }
+        timeseries.append(TimestampdValue(timestamp, carbon_intensity))
+    return CarbonIntensityData(None, None, iso, timeseries)
 
 def call_sysnet_energy_mixture_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow):
     url_get_energy_mixture = 'http://yeti-09.sysnet.ucsd.edu/energy-mixture/'
