@@ -3,7 +3,10 @@
 import arrow
 import requests
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+import numpy as np
+import pandas as pd
+from typing import Any
 
 @dataclass
 class TimestampdValue:
@@ -28,6 +31,7 @@ class CarbonIntensityData:
     region: str
     iso: str
     timeseries: list[TimestampdValue]
+    timeseries_pd: pd.Series
 
     def __str__(self) -> str:
         if len(self.timeseries) == 0:
@@ -38,6 +42,52 @@ class CarbonIntensityData:
                 self.timeseries[-1].timestamp
             )
         return f'CarbonIntensityData {self.cloud_vendor}:{self.region} ({self.iso}), {timeseries_str}'
+
+    def set_timeseries_interval(self, freq: str = '5min'):
+        pd_index = self.timeseries_pd.index
+        print('pd min: ', pd_index.min(), pd_index.min().tzname())
+        new_index = pd.date_range(self.timeseries_pd.index.min(), self.timeseries_pd.index.max(), freq=freq, inclusive='both', tz=pd_index.min().tzname())
+        self.timeseries_pd = self.timeseries_pd.reindex(new_index, method='ffill')
+        self.reset_timeseries_from_pd()
+
+    def reset_timeseries_from_pd(self):
+        self.timeseries = self.create_timeseries_from_pd(self.timeseries_pd)
+
+    @classmethod
+    def create_timeseries_from_pd(cls, timeseries_pd: pd.Series) -> list[TimestampdValue]:
+        return list(map(
+            lambda ts, ci: TimestampdValue(ts.to_pydatetime(), ci),
+            timeseries_pd.index.tolist(),
+            timeseries_pd.values.tolist()
+        ))
+
+
+def get_carbon_intensity_interval(timestamps: list[datetime]) -> timedelta:
+    """Deduce the interval from a series of timestamps returned from the database."""
+    if len(timestamps) == 0:
+        raise ValueError("Invalid argument: empty list.")
+    if len(timestamps) == 1:
+        return timedelta(hours=1)
+    timestamp_deltas = np.diff(timestamps)
+    values, counts = np.unique(timestamp_deltas, return_counts=True)
+    return values[np.argmax(counts)]
+
+
+def create_pd_series(timestamps: list[datetime], values: list[Any]) -> pd.Series:
+    def to_utc(ts: datetime):
+        """Add/Convert datetime to UTC timezone."""
+        tz_utc = timezone.utc
+        if ts.tzinfo:
+            return ts.astimezone(tz_utc)
+        else:
+            return ts.replace(tzinfo=tz_utc)
+
+    utc_timestamps = [ to_utc(ts) for ts in timestamps ]
+    pd_index = pd.DatetimeIndex(utc_timestamps)
+    pd_values = values
+    ds = pd.Series(pd_values, index=pd_index)
+    ds.sort_index()
+    return ds
 
 
 def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow) -> CarbonIntensityData:
@@ -57,7 +107,9 @@ def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: a
         timestamp = arrow.get(element['timestamp']).datetime
         carbon_intensity = float(element['carbon_intensity'])
         timeseries.append(TimestampdValue(timestamp, carbon_intensity))
-    return CarbonIntensityData(None, None, iso, sorted(timeseries))
+    timeseries = sorted(timeseries)
+    ds = create_pd_series([e.timestamp for e in timeseries], [e.value for e in timeseries])
+    return CarbonIntensityData(None, None, iso, timeseries, ds)
 
 def call_sysnet_energy_mixture_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow):
     url_get_energy_mixture = 'http://yeti-09.sysnet.ucsd.edu/energy-mixture/'
