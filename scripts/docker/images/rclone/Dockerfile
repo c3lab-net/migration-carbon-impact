@@ -26,6 +26,7 @@ RUN cp rclone /usr/bin/ && \
 #     mandb
 
 ## Clean up
+WORKDIR /
 RUN rm -rf ${TMPDIR}
 
 ## Show rclone configuration file location
