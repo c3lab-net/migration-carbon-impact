@@ -25,5 +25,6 @@ spec:
       - name: secret-vol-cephs3-rclone-config
         readOnly: true
         mountPath: "/root/.config/rclone/"
+  restartPolicy: Never
   imagePullSecrets:
     - name: regcred

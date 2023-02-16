@@ -13,6 +13,7 @@ spec:
       requests:
         memory: 100Mi
         cpu: 100m
-    # command: ["sh", "-c", "echo 'Im a new pod' && sleep infinity"]
+    command: ["ffmpeg", "-version"]
+  restartPolicy: Never
   imagePullSecrets:
     - name: regcred
