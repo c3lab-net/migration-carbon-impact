@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fio-test-rados
+spec:
+  containers:
+  - name: fio-test-rados
+    image: gitlab-registry.nrp-nautilus.io/c3lab/common/fio-benchmark:3.33
+    imagePullPolicy: Always
+    command: [ "/fio.benchmark.sh", "/test-vol", "256M", "16" ]
+    volumeMounts:
+    - mountPath: /test-vol
+      name: test-vol
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 1
+      requests:
+        memory: 1Gi
+        cpu: 500m
+  volumes:
+    - name: test-vol
+      persistentVolumeClaim:
+        claimName: test.rados.uswest
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: topology.kubernetes.io/region
+            operator: In
+            values:
+            - us-west
+  imagePullSecrets:
+    - name: regcred
+  restartPolicy: Never

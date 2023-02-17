@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fio-test-local
+spec:
+  containers:
+  - name: fio-test-local
+    image: gitlab-registry.nrp-nautilus.io/c3lab/common/fio-benchmark:3.33
+    imagePullPolicy: Always
+    command: [ "/fio.benchmark.sh", "/test-vol", "256M", "16" ]
+    volumeMounts:
+    - mountPath: /test-vol
+      name: test-vol
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 1
+        ephemeral-storage: 5Gi
+      requests:
+        memory: 1Gi
+        cpu: 500m
+        ephemeral-storage: 5Gi
+  volumes:
+    - name: test-vol
+      emptyDir: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: topology.kubernetes.io/region
+            operator: In
+            values:
+            - us-west
+  imagePullSecrets:
+    - name: regcred
+  restartPolicy: Never
