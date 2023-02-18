@@ -1,0 +1,147 @@
+Running fio throughput and IOPS tests in '/test-vol' ...
+
+1. Write throughput test
+
+write_throughput: (g=0): rw=write, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, (T) 1024KiB-1024KiB, ioengine=libaio, iodepth=64
+...
+fio-3.33
+Starting 16 processes
+write_throughput: Laying out IO file (1 file / 256MiB)
+
+write_throughput: (groupid=0, jobs=16): err= 0: pid=107: Sat Feb 18 00:17:39 2023
+  write: IOPS=900, BW=901MiB/s (945MB/s)(63.2GiB/71813msec); 0 zone resets
+    slat (usec): min=49, max=7556.1k, avg=1071.13, stdev=50033.85
+    clat (msec): min=52, max=41536, avg=997.14, stdev=2045.34
+     lat (msec): min=53, max=41536, avg=998.30, stdev=2046.23
+    clat percentiles (msec):
+     |  1.00th=[  136],  5.00th=[  194], 10.00th=[  236], 20.00th=[  305],
+     | 30.00th=[  363], 40.00th=[  430], 50.00th=[  506], 60.00th=[  609],
+     | 70.00th=[  743], 80.00th=[  995], 90.00th=[ 1687], 95.00th=[ 3239],
+     | 99.00th=[ 9329], 99.50th=[12416], 99.90th=[17113], 99.95th=[17113],
+     | 99.99th=[17113]
+   bw (  MiB/s): min=  206, max= 1964, per=100.00%, avg=1093.76, stdev=22.48, samples=1875
+   iops        : min=  206, max= 1964, avg=1093.71, stdev=22.48, samples=1875
+  lat (msec)   : 100=0.21%, 250=11.55%, 500=37.35%, 750=21.16%, 1000=9.87%
+  lat (msec)   : 2000=11.86%, >=2000=8.08%
+  cpu          : usr=0.60%, sys=0.92%, ctx=51982, majf=0, minf=110027
+  IO depths    : 1=0.0%, 2=0.1%, 4=0.1%, 8=0.2%, 16=0.4%, 32=0.8%, >=64=98.5%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.1%, >=64=0.0%
+     issued rwts: total=0,64685,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=64
+
+Run status group 0 (all jobs):
+  WRITE: bw=901MiB/s (945MB/s), 901MiB/s-901MiB/s (945MB/s-945MB/s), io=63.2GiB (67.9GB), run=71813-71813msec
+
+2. Write IOPS test
+
+write_iops: (g=0): rw=randwrite, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=256
+fio-3.33
+Starting 1 process
+write_iops: Laying out IO file (1 file / 256MiB)
+
+write_iops: (groupid=0, jobs=1): err= 0: pid=222: Sat Feb 18 00:19:09 2023
+  write: IOPS=597, BW=2389KiB/s (2447kB/s)(166MiB/71125msec); 0 zone resets
+    slat (usec): min=17, max=15759k, avg=450.14, stdev=76462.51
+    clat (msec): min=13, max=17965, avg=427.26, stdev=1128.31
+     lat (msec): min=13, max=17965, avg=427.71, stdev=1130.85
+    clat percentiles (msec):
+     |  1.00th=[   37],  5.00th=[   65], 10.00th=[   87], 20.00th=[  122],
+     | 30.00th=[  155], 40.00th=[  188], 50.00th=[  224], 60.00th=[  268],
+     | 70.00th=[  326], 80.00th=[  414], 90.00th=[  617], 95.00th=[ 1011],
+     | 99.00th=[ 4144], 99.50th=[11208], 99.90th=[15368], 99.95th=[16442],
+     | 99.99th=[17113]
+   bw (  KiB/s): min=    8, max= 4264, per=100.00%, avg=2792.50, stdev=754.82, samples=121
+   iops        : min=    2, max= 1066, avg=698.08, stdev=188.72, samples=121
+  lat (msec)   : 20=0.04%, 50=2.46%, 100=11.22%, 250=42.59%, 500=29.51%
+  lat (msec)   : 750=6.93%, 1000=2.22%, 2000=2.29%, >=2000=2.74%
+  cpu          : usr=0.47%, sys=5.04%, ctx=29538, majf=0, minf=340
+  IO depths    : 1=0.0%, 2=0.1%, 4=0.1%, 8=0.1%, 16=0.1%, 32=0.1%, >=64=99.9%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.1%
+     issued rwts: total=0,42482,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=256
+
+Run status group 0 (all jobs):
+  WRITE: bw=2389KiB/s (2447kB/s), 2389KiB/s-2389KiB/s (2447kB/s-2447kB/s), io=166MiB (174MB), run=71125-71125msec
+
+3. Read throughput test
+
+read_throughput: (g=0): rw=read, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, (T) 1024KiB-1024KiB, ioengine=libaio, iodepth=64
+...
+fio-3.33
+Starting 16 processes
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+read_throughput: Laying out IO file (1 file / 256MiB)
+
+read_throughput: (groupid=0, jobs=16): err= 0: pid=322: Sat Feb 18 00:20:57 2023
+  read: IOPS=1138, BW=1155MiB/s (1211MB/s)(68.7GiB/60918msec)
+    slat (usec): min=23, max=1281, avg=100.05, stdev=34.85
+    clat (msec): min=11, max=13448, avg=895.14, stdev=1711.73
+     lat (msec): min=11, max=13448, avg=895.25, stdev=1711.74
+    clat percentiles (msec):
+     |  1.00th=[   30],  5.00th=[   77], 10.00th=[   97], 20.00th=[  126],
+     | 30.00th=[  153], 40.00th=[  188], 50.00th=[  241], 60.00th=[  330],
+     | 70.00th=[  502], 80.00th=[  919], 90.00th=[ 2567], 95.00th=[ 4933],
+     | 99.00th=[ 8490], 99.50th=[10134], 99.90th=[12281], 99.95th=[12550],
+     | 99.99th=[12818]
+   bw (  MiB/s): min=  302, max= 2072, per=99.94%, avg=1154.58, stdev=21.07, samples=1923
+   iops        : min=  302, max= 2072, avg=1154.51, stdev=21.07, samples=1923
+  lat (msec)   : 20=0.27%, 50=2.32%, 100=8.62%, 250=41.01%, 500=18.78%
+  lat (msec)   : 750=7.20%, 1000=4.14%, 2000=6.78%, >=2000=12.33%
+  cpu          : usr=0.08%, sys=0.81%, ctx=69829, majf=0, minf=578
+  IO depths    : 1=0.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=100.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.1%, >=64=0.0%
+     issued rwts: total=69371,0,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=64
+
+Run status group 0 (all jobs):
+   READ: bw=1155MiB/s (1211MB/s), 1155MiB/s-1155MiB/s (1211MB/s-1211MB/s), io=68.7GiB (73.8GB), run=60918-60918msec
+
+4. Read IOPS test
+
+read_iops: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=256
+fio-3.33
+Starting 1 process
+read_iops: Laying out IO file (1 file / 256MiB)
+
+read_iops: (groupid=0, jobs=1): err= 0: pid=437: Sat Feb 18 00:22:05 2023
+  read: IOPS=2790, BW=10.9MiB/s (11.4MB/s)(662MiB/60604msec)
+    slat (usec): min=13, max=968, avg=67.21, stdev=18.20
+    clat (msec): min=5, max=8482, avg=92.30, stdev=280.96
+     lat (msec): min=5, max=8482, avg=92.37, stdev=280.96
+    clat percentiles (msec):
+     |  1.00th=[    8],  5.00th=[   11], 10.00th=[   12], 20.00th=[   17],
+     | 30.00th=[   22], 40.00th=[   25], 50.00th=[   33], 60.00th=[   46],
+     | 70.00th=[   68], 80.00th=[  110], 90.00th=[  203], 95.00th=[  321],
+     | 99.00th=[  760], 99.50th=[ 1133], 99.90th=[ 3943], 99.95th=[ 7617],
+     | 99.99th=[ 8423]
+   bw (  KiB/s): min=    8, max=19144, per=100.00%, avg=11183.31, stdev=3680.49, samples=121
+   iops        : min=    2, max= 4786, avg=2795.79, stdev=920.12, samples=121
+  lat (msec)   : 10=3.78%, 20=23.07%, 50=35.73%, 100=15.69%, 250=14.56%
+  lat (msec)   : 500=5.04%, 750=1.27%, 1000=0.40%, 2000=0.41%, >=2000=0.22%
+  cpu          : usr=1.62%, sys=19.82%, ctx=100488, majf=0, minf=49
+  IO depths    : 1=0.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=100.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.1%
+     issued rwts: total=169115,0,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=256
+
+Run status group 0 (all jobs):
+   READ: bw=10.9MiB/s (11.4MB/s), 10.9MiB/s-10.9MiB/s (11.4MB/s-11.4MB/s), io=662MiB (694MB), run=60604-60604msec
+
