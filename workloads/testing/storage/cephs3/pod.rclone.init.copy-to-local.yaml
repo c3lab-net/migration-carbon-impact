@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-rclone-init-copy-to-local
+spec:
+  # Secret setup: https://kubernetes.io/docs/concepts/configuration/secret/#use-case-pod-with-ssh-keys
+  volumes:
+    - name: secret-vol-cephs3-rclone-config
+      secret:
+        secretName: cephs3-rclone-conf
+    - name: data-vol
+      emptyDir: {}
+  initContainers:
+  - name: init-rclone-copy-to-local
+    image: gitlab-registry.nrp-nautilus.io/c3lab/common/rclone:1.61.1
+    # imagePullPolicy: Always
+    command: ["sh", "-c"]
+    args:
+      - >
+        DST_DIR="/data-vol/rawdata" &&
+        rm -rf "$DST_DIR" &&
+        mkdir "$DST_DIR" &&
+        rclone copy nrp-west:workloads/rawdata/youtube-wnhvanMdx4s.720p.mp4 "$DST_DIR/"
+    volumeMounts:
+      - name: secret-vol-cephs3-rclone-config
+        readOnly: true
+        mountPath: "/root/.config/rclone/"
+      - name: data-vol
+        mountPath: /data-vol
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 500m
+        ephemeral-storage: 4Gi
+      limits:
+        memory: 128Mi
+        cpu: 1000m
+        ephemeral-storage: 4Gi
+  containers:
+  - name: test-stat-local-file
+    image: alpine
+    # imagePullPolicy: Always
+    command: ["sh", "-c"]
+    args:
+      - >
+        stat "/data-vol/rawdata/youtube-wnhvanMdx4s.720p.mp4"
+    volumeMounts:
+    - name: data-vol
+      mountPath: /data-vol
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+        ephemeral-storage: 4Gi
+      limits:
+        memory: 256Mi
+        cpu: 100m
+        ephemeral-storage: 4Gi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: topology.kubernetes.io/region
+            operator: In
+            values:
+            - us-west
+  restartPolicy: Never
+  imagePullSecrets:
+    - name: regcred
