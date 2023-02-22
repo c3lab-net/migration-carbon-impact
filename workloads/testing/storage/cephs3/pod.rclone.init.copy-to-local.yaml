@@ -43,7 +43,7 @@ spec:
     command: ["sh", "-c"]
     args:
       - >
-        stat "/data-vol/rawdata/youtube-wnhvanMdx4s.720p.mp4"
+        time -v sha256sum "/data-vol/rawdata/youtube-wnhvanMdx4s.720p.mp4"
     volumeMounts:
     - name: data-vol
       mountPath: /data-vol
