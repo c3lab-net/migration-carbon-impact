@@ -4,3 +4,6 @@
 [submodule "references/Intel-HiBench"]
 	path = references/Intel-HiBench
 	url = https://github.com/Intel-bigdata/HiBench.git
+[submodule "references/carbon-aware-scheduler"]
+	path = references/carbon-aware-scheduler
+	url = git@bitbucket.org:nilyibo/carbon-aware-scheduler.git
