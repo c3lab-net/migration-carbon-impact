@@ -24,7 +24,7 @@ RUN make && \
     make distclean
 
 WORKDIR /
-RUN rm -rf ${DIR} && \
+RUN rm -rf ${TMPDIR} && \
     apk del build-base curl tar bzip2 x264 openssl nasm && rm -rf /var/cache/apk/*
 
 ENTRYPOINT ["ffmpeg"]
