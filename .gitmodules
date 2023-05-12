@@ -7,3 +7,6 @@
 [submodule "references/carbon-aware-scheduler"]
 	path = references/carbon-aware-scheduler
 	url = git@bitbucket.org:nilyibo/carbon-aware-scheduler.git
+[submodule "scripts/docker/images/facebook-tao/taobench"]
+	path = scripts/docker/images/facebook-tao/taobench
+	url = https://github.com/audreyccheng/taobench.git
