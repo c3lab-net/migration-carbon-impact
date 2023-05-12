@@ -28,9 +28,9 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: cockroachdb
+  name: taobench-cockroachdb
   labels:
-    app: cockroachdb
+    app: taobench-cockroachdb
 rules:
 - apiGroups:
   - ""
@@ -48,7 +48,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: cockroachdb
+  name: taobench-cockroachdb
 subjects:
 - kind: ServiceAccount
   name: taobench-cockroachdb

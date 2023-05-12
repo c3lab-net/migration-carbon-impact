@@ -6,3 +6,4 @@ Because Nautilus manages multiple regions in a single cluster, we can use single
 - Skip step 1, as this only applies to cloud-based kubernetes deployment.
 - Follow step 2 and change namespace as needed, as included in the scripts.
 - Follow step 3 and 4 to interact with the database.
+- Follow step 5 to delete all resources created.
