@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taobench-app-1-schema-setup
+  labels:
+    project: taobench
+    app: taobench-app
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: cockroachdb-client
+        image: cockroachdb/cockroach:v22.2.9
+        command: [ "sh", "-c" ]
+        args:
+          - >
+            set -x;
+            ./cockroach sql
+            --certs-dir=/cockroach-certs
+            --host="$CRDB_HOST"
+            --execute="CREATE DATABASE \"$CRDB_DB\";" &&
+            ./cockroach sql
+            --certs-dir=/cockroach-certs
+            --host="$CRDB_HOST"
+            --database="$CRDB_DB"
+            --execute="$SQL_SCRIPT"
+        env:
+          - name: CRDB_DB
+            valueFrom:
+              secretKeyRef:
+                name: taobench-cockroachdb-client
+                key: CRDB_DB
+          - name: CRDB_HOST
+            value: taobench-cockroachdb-public
+          - name: SQL_SCRIPT
+            value: >- # Source: taobench/crdb/README.md#setting-the-database-schema
+              create table objects(
+                id INT primary key,
+                timestamp bigint,
+                value varchar(150));
+              create table edges(
+                id1 INT,
+                id2 INT,
+                type INT,
+                timestamp bigint,
+                value varchar(150),
+                primary key (id1, id2, type));
+        volumeMounts:
+        - name: client-certs
+          mountPath: /cockroach-certs
+        resources:
+          requests:
+            cpu: 500m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 256Mi
+      volumes:
+      - name: client-certs
+        secret:
+          secretName: taobench.cockroachdb.client.root
+          defaultMode: 0400
+      restartPolicy: Never
