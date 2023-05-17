@@ -1,0 +1,125 @@
+# Source: https://raw.githubusercontent.com/cockroachdb/cockroach/master/cloud/kubernetes/bring-your-own-certs/cockroachdb-statefulset.yaml
+# Generated file, DO NOT EDIT. Source: cloud/kubernetes/templates/bring-your-own-certs/cockroachdb-statefulset.yaml
+# This config file defines a CockroachDB StatefulSet that uses certificates
+# created outside of Kubernetes. You may want to use it if you want to use a
+# different certificate authority from the one being used by Kubernetes or if
+# your Kubernetes cluster doesn't fully support certificate-signing requests
+# (e.g. as of July 2018, EKS doesn't work properly).
+#
+# To use this config file, first set up your certificates and load them into
+# your Kubernetes cluster as Secrets using the commands below:
+#
+# mkdir certs
+# mkdir my-safe-directory
+# cockroach cert create-ca --certs-dir=certs --ca-key=my-safe-directory/ca.key
+# cockroach cert create-client root --certs-dir=certs --ca-key=my-safe-directory/ca.key
+# kubectl create secret generic cockroachdb.client.root --from-file=certs
+# cockroach cert create-node --certs-dir=certs --ca-key=my-safe-directory/ca.key localhost 127.0.0.1 cockroachdb-public cockroachdb-public.default cockroachdb-public.default.svc.cluster.local *.cockroachdb *.cockroachdb.default *.cockroachdb.default.svc.cluster.local
+# kubectl create secret generic cockroachdb.node --from-file=certs
+# kubectl create -f bring-your-own-certs-statefulset.yaml
+# kubectl exec -it cockroachdb-0 -- /cockroach/cockroach init --certs-dir=/cockroach/cockroach-certs
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: taobench-cockroachdb
+  labels:
+    app: taobench-cockroachdb
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: taobench-cockroachdb
+  labels:
+    app: taobench-cockroachdb
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: taobench-cockroachdb
+  labels:
+    app: taobench-cockroachdb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: taobench-cockroachdb
+subjects:
+- kind: ServiceAccount
+  name: taobench-cockroachdb
+  namespace: c3lab
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # This service is meant to be used by clients of the database. It exposes a ClusterIP that will
+  # automatically load balance connections to the different database pods.
+  name: taobench-cockroachdb-public
+  labels:
+    app: taobench-cockroachdb
+spec:
+  ports:
+  # The main port, served by gRPC, serves Postgres-flavor SQL, internode
+  # traffic and the cli.
+  - port: 26257
+    targetPort: 26257
+    name: grpc
+  # The secondary port serves the UI as well as health and debug endpoints.
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    app: taobench-cockroachdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # This service only exists to create DNS entries for each pod in the stateful
+  # set such that they can resolve each other's IP addresses. It does not
+  # create a load-balanced ClusterIP and should not be used directly by clients
+  # in most circumstances.
+  name: taobench-cockroachdb
+  labels:
+    app: taobench-cockroachdb
+  annotations:
+    # Use this annotation in addition to the actual publishNotReadyAddresses
+    # field below because the annotation will stop being respected soon but the
+    # field is broken in some versions of Kubernetes:
+    # https://github.com/kubernetes/kubernetes/issues/58662
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    # Enable automatic monitoring of all instances when Prometheus is running in the cluster.
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "_status/vars"
+    prometheus.io/port: "8080"
+spec:
+  ports:
+  - port: 26257
+    targetPort: 26257
+    name: grpc
+  - port: 8080
+    targetPort: 8080
+    name: http
+  # We want all pods in the StatefulSet to have their addresses published for
+  # the sake of the other CockroachDB pods even before they're ready, since they
+  # have to be able to talk to each other in order to become ready.
+  publishNotReadyAddresses: true
+  clusterIP: None
+  selector:
+    app: taobench-cockroachdb
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: taobench-cockroachdb-budget
+  labels:
+    app: taobench-cockroachdb
+spec:
+  selector:
+    matchLabels:
+      app: taobench-cockroachdb
+  maxUnavailable: 1

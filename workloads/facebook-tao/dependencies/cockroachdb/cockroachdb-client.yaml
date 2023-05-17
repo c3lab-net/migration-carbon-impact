@@ -13,8 +13,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: taobench-cockroachdb-client-secure
+  name: taobench-cockroachdb-client
   labels:
+    project: taobench
     app: taobench-cockroachdb-client
 spec:
   serviceAccountName: taobench-cockroachdb
@@ -23,9 +24,10 @@ spec:
     image: cockroachdb/cockroach:v22.2.9
     # Keep a pod open indefinitely so kubectl exec can be used to get a shell to it
     # and run cockroach client commands, such as cockroach sql, cockroach node status, etc.
-    command:
-    - sleep
-    - "2147483648" # 2^31
+    command: [ "sh", "-c"]
+    args:
+      - >
+        sleep infinity
     volumeMounts:
     - name: client-certs
       mountPath: /cockroach-certs
@@ -40,4 +42,4 @@ spec:
   - name: client-certs
     secret:
       secretName: taobench.cockroachdb.client.root
-      defaultMode: 256
+      defaultMode: 0400
