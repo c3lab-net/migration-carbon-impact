@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taobench-app-3-load-data
+  labels:
+    project: taobench
+    app: taobench-app
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: facebook-taobench
+        image: gitlab-registry.nrp-nautilus.io/c3lab/workload-migration/facebook_tao:1.0.0
+        command: [ "sh", "-c" ]
+        args:
+          - >
+            /taobench/build/taobench
+            -load-threads "$num_threads"
+            -db crdb
+            -property crdb.connectionstring="$CRDB_CONNECTION_STRING"
+            -c /taobench/src/"$workload".json
+            -load -n "$num_edges"
+            -property write_batch_size="$write_batch_size"
+        env:
+        - name: CRDB_HOST
+          value: taobench-cockroachdb-public
+        - name: CRDB_CLIENT_CERT_DIR
+          value: /cockroach-certs
+        - name: CRDB_CONNECTION_STRING
+          # Note: Use "postgresql://$(CRDB_USER):$(CRDB_PASSWORD)@$(CRDB_HOST)" if not using cert.
+          value: "postgresql://$(CRDB_HOST):26257\
+                    /$(CRDB_DB)?sslmode=verify-full&\
+                    sslrootcert=$(CRDB_CLIENT_CERT_DIR)/ca.crt&\
+                    sslcert=$(CRDB_CLIENT_CERT_DIR)/client.root.crt&\
+                    sslkey=$(CRDB_CLIENT_CERT_DIR)/client.root.key"
+        - name: workload  # one of the following two options
+          value: "workload_a"
+          # value: "workload_o"
+        - name: num_threads
+          value: "50"
+        - name: num_edges
+          value: "165000000"
+        - name: write_batch_size
+          value: "10"
+        envFrom:
+        - secretRef:
+            name: taobench-cockroachdb-client
+        volumeMounts:
+        - name: client-certs
+          mountPath: /cockroach-certs
+        resources:
+          requests:
+            cpu: 500m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 256Mi
+      volumes:
+      - name: client-certs
+        secret:
+          secretName: taobench.cockroachdb.client.root
+          defaultMode: 0400
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: regcred
