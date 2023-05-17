@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taobench-app-2-configure-params
+  labels:
+    project: taobench
+    app: taobench-app
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: facebook-taobench
+        image: busybox
+        command: [ "sh", "-c" ]
+        args:
+          - >
+            set -x;
+            echo "$EXPERIMENTS_TXT_CONTENT" | tee /experiments/experiments.txt
+        env:
+          - name: EXPERIMENTS_TXT_CONTENT
+            value: |- # Source: taobench/USAGE.md#experiments
+              2,10,150
+              16,10,150
+              128,10,150
+              1024,10,150
+        volumeMounts:
+        - name: experiments-dir
+          mountPath: /experiments
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+      volumes:
+      - name: experiments-dir
+        persistentVolumeClaim:
+          claimName: facebook-taobench-experiments
+      restartPolicy: Never
