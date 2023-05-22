@@ -6,7 +6,8 @@ RUN apt-get update
 RUN apt-get install -y git curl
 RUN apt-get install -y make cmake gcc gfortran
 
-RUN git clone https://github.com/carbonfirst/CarbonCast.git ${REPO_DIR}
+# RUN git clone https://github.com/carbonfirst/CarbonCast.git ${REPO_DIR}
+ADD carboncast ${REPO_DIR}
 
 WORKDIR ${REPO_DIR}
 

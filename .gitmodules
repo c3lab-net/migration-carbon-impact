@@ -10,3 +10,6 @@
 [submodule "scripts/docker/images/facebook-tao/taobench"]
 	path = scripts/docker/images/facebook-tao/taobench
 	url = https://github.com/audreyccheng/taobench.git
+[submodule "scripts/docker/images/carboncast/carboncast"]
+	path = scripts/docker/images/carboncast/carboncast
+	url = https://github.com/carbonfirst/CarbonCast.git
