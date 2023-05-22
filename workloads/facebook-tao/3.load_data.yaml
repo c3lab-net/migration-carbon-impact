@@ -15,7 +15,7 @@ spec:
         command: [ "sh", "-c" ]
         args:
           - >
-            /taobench/build/taobench
+            /usr/bin/time -v /taobench/build/taobench
             -load-threads "$num_threads"
             -db crdb
             -property crdb.connectionstring="$CRDB_CONNECTION_STRING"

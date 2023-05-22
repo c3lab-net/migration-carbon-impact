@@ -5,7 +5,7 @@ RUN apt-get update
 RUN apt-get install -y software-properties-common
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 RUN apt-get install -y build-essential cmake g++-11
-RUN apt-get install -y build-essential git
+RUN apt-get install -y git time
 
 RUN apt-get install -y libpq-dev postgresql
 
