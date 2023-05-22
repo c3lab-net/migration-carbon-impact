@@ -51,11 +51,11 @@ spec:
           mountPath: /cockroach-certs
         resources:
           requests:
-            cpu: 500m
-            memory: 256Mi
+            cpu: "4"
+            memory: 4Gi
           limits:
-            cpu: "1"
-            memory: 256Mi
+            cpu: "4"
+            memory: 4Gi
       volumes:
       - name: client-certs
         secret:
