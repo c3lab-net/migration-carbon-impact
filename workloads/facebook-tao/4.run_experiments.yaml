@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taobench-app-4-run-experiments
+  labels:
+    project: taobench
+    app: taobench-app
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: facebook-taobench
+        image: gitlab-registry.nrp-nautilus.io/c3lab/workload-migration/facebook_tao:1.0.0
+        command: [ "bash", "-c" ]
+        args:
+          - >
+            timestamp="$(date --utc +%Y%m%d_%H%M%SZ)";
+            outfile="/experiments/result.$timestamp.txt";
+            log_and_run() {
+              set -o pipefail;
+              echo "+ $@" | tee "$outfile";
+              /usr/bin/time -v "$@" 2>&1 | tee -a "$outfile";
+            };
+            log_and_run
+            /taobench/build/taobench
+            -load-threads "$num_threads"
+            -db crdb
+            -property crdb.connectionstring="$CRDB_CONNECTION_STRING"
+            -c /taobench/src/"$workload".json
+            -run
+            -e /experiments/experiments.txt
+            -property read_batch_size="$read_batch_size"
+        env:
+        - name: CRDB_HOST
+          value: taobench-cockroachdb-public
+        - name: CRDB_CLIENT_CERT_DIR
+          value: /cockroach-certs
+        - name: CRDB_CONNECTION_STRING
+          # Note: Use "postgresql://$(CRDB_USER):$(CRDB_PASSWORD)@$(CRDB_HOST)" if not using cert.
+          value: "postgresql://$(CRDB_HOST):26257\
+                    /$(CRDB_DB)?sslmode=verify-full&\
+                    sslrootcert=$(CRDB_CLIENT_CERT_DIR)/ca.crt&\
+                    sslcert=$(CRDB_CLIENT_CERT_DIR)/client.root.crt&\
+                    sslkey=$(CRDB_CLIENT_CERT_DIR)/client.root.key"
+        - name: workload  # one of the following two options
+          value: "workload_a"
+          # value: "workload_o"
+        - name: num_threads
+          value: "50"
+        - name: read_batch_size
+          value: "100"
+        envFrom:
+        - secretRef:
+            name: taobench-cockroachdb-client
+        volumeMounts:
+        - name: client-certs
+          mountPath: /cockroach-certs
+        - name: experiments-dir
+          mountPath: /experiments
+        resources:
+          requests:
+            cpu: "4"
+            memory: 1Gi
+          limits:
+            cpu: "4"
+            memory: 1Gi
+      volumes:
+      - name: client-certs
+        secret:
+          secretName: taobench.cockroachdb.client.root
+          defaultMode: 0400
+      - name: experiments-dir
+        persistentVolumeClaim:
+          claimName: facebook-taobench-experiments
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: regcred
