@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: taobench-cockroachdb
+  labels:
+    project: taobench
+    app: taobench-cockroachdb
 spec:
   serviceName: "taobench-cockroachdb"
   replicas: 3
