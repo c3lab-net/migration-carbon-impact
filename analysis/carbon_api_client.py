@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 import numpy as np
 import pandas as pd
 from typing import Any
+import sys
 
 @dataclass
 class TimestampdValue:
@@ -61,6 +62,36 @@ class CarbonIntensityData:
             timeseries_pd.values.tolist()
         ))
 
+    def merge_with(self, other, dedup=True):
+        if not isinstance(other, CarbonIntensityData):
+            raise TypeError("Cannot compare with a different type")
+        if self.cloud_vendor != other.cloud_vendor or \
+                self.region != other.region or \
+                self.iso != other.iso:
+            raise ValueError("Cannot merge with a different cloud vendor/region or iso")
+        combined = pd.concat([self.timeseries_pd, other.timeseries_pd])
+        if dedup:
+            self.timeseries_pd = combined[~combined.index.duplicated(keep='first')].sort_index()
+        self.reset_timeseries_from_pd()
+
+    @classmethod
+    def merge(cls, l):
+        if not isinstance(l, list) or len(l) == 0:
+            raise TypeError("l must be a non-empty list")
+        for element in l:
+            if not isinstance(element, CarbonIntensityData):
+                raise TypeError("Cannot merge elements of a different type")
+        it = iter(l)
+        first = next(it)
+        for element in it:
+            if first.cloud_vendor != element.cloud_vendor or \
+                    first.region != element.region or \
+                    first.iso != element.iso:
+                raise ValueError("Cannot merge with a different cloud vendor/region or iso")
+        combined_pd = pd.concat([x.timeseries_pd for x in l])
+        combined_pd = combined_pd[~combined_pd.index.duplicated(keep='first')].sort_index()
+        timeseries = cls.create_timeseries_from_pd(combined_pd)
+        return CarbonIntensityData(first.cloud_vendor, first.region, first.iso, timeseries, combined_pd)
 
 def get_carbon_intensity_interval(timestamps: list[datetime]) -> timedelta:
     """Deduce the interval from a series of timestamps returned from the database."""
@@ -90,26 +121,36 @@ def create_pd_series(timestamps: list[datetime], values: list[Any]) -> pd.Series
     return ds
 
 
-def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow) -> CarbonIntensityData:
-    url_get_carbon_intensity = 'http://yeti-09.sysnet.ucsd.edu/carbon-intensity/'
+def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow,
+                                     desired_renewable_ratio: float = None) -> CarbonIntensityData:
+    url_get_carbon_intensity = 'http://localhost:8082/carbon-intensity/'
     response = requests.get(url_get_carbon_intensity, params={
         'latitude': latitude,
         'longitude': longitude,
         'start': start,
         'end': end,
+        'desired_renewable_ratio': desired_renewable_ratio
     })
-    assert response.ok, "Carbon intensity lookup failed (%d): %s" % (response.status_code, response.text)
-    response_json = response.json()
-    iso = response_json['region']
-    carbon_intensities = response_json['carbon_intensities']
-    timeseries = []
-    for element in carbon_intensities:
-        timestamp = arrow.get(element['timestamp']).datetime
-        carbon_intensity = float(element['carbon_intensity'])
-        timeseries.append(TimestampdValue(timestamp, carbon_intensity))
-    timeseries = sorted(timeseries)
-    ds = create_pd_series([e.timestamp for e in timeseries], [e.value for e in timeseries])
-    return CarbonIntensityData(None, None, iso, timeseries, ds)
+    try:
+        assert response.ok, "Carbon intensity lookup failed (%d): %s" % (response.status_code, response.text)
+        response_json = response.json()
+        iso = response_json['region']
+        carbon_intensities = response_json['carbon_intensities']
+        timeseries = []
+        for element in carbon_intensities:
+            timestamp = arrow.get(element['timestamp']).datetime
+            carbon_intensity = float(element['carbon_intensity'] or -1)
+            renewable_ratio = float(element['renewable_ratio'] or -1)
+            if carbon_intensity == -1:
+                continue
+            timeseries.append((timestamp, carbon_intensity))
+        timeseries = sorted(timeseries)
+        ds = create_pd_series([e[0] for e in timeseries], [e[1] for e in timeseries])
+        return CarbonIntensityData(None, None, iso, timeseries, ds)
+    except AssertionError as e:
+        print(e, file=sys.stderr)
+        return None
+        # return CarbonIntensityData(None, None, None, [], pd.Series([]))
 
 def call_sysnet_energy_mixture_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow):
     url_get_energy_mixture = 'http://yeti-09.sysnet.ucsd.edu/energy-mixture/'
