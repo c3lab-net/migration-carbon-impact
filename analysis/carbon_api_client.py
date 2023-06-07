@@ -9,6 +9,8 @@ import pandas as pd
 from typing import Any
 import sys
 
+override_renewable_ratio_over_carbon_intensity = False
+
 @dataclass
 class TimestampdValue:
     timestamp: datetime
@@ -123,7 +125,7 @@ def create_pd_series(timestamps: list[datetime], values: list[Any]) -> pd.Series
 
 def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: arrow.Arrow, end: arrow.Arrow,
                                      desired_renewable_ratio: float = None) -> CarbonIntensityData:
-    url_get_carbon_intensity = 'http://localhost:8082/carbon-intensity/'
+    url_get_carbon_intensity = 'http://yeti-09.sysnet.ucsd.edu/carbon-intensity/'
     response = requests.get(url_get_carbon_intensity, params={
         'latitude': latitude,
         'longitude': longitude,
@@ -131,6 +133,7 @@ def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: a
         'end': end,
         'desired_renewable_ratio': desired_renewable_ratio
     })
+    global override_renewable_ratio_over_carbon_intensity
     try:
         assert response.ok, "Carbon intensity lookup failed (%d): %s" % (response.status_code, response.text)
         response_json = response.json()
@@ -143,7 +146,10 @@ def call_sysnet_carbon_intensity_api(latitude: float, longitude: float, start: a
             renewable_ratio = float(element['renewable_ratio'] or -1)
             if carbon_intensity == -1:
                 continue
-            timeseries.append((timestamp, carbon_intensity))
+            if override_renewable_ratio_over_carbon_intensity:
+                timeseries.append((timestamp, renewable_ratio))
+            else:
+                timeseries.append((timestamp, carbon_intensity))
         timeseries = sorted(timeseries)
         ds = create_pd_series([e[0] for e in timeseries], [e[1] for e in timeseries])
         return CarbonIntensityData(None, None, iso, timeseries, ds)
