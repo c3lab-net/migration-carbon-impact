@@ -96,14 +96,14 @@ def plot_cdf_array(array, label, include_count = False, index=0, color=None):
         color = get_next_color()
     plt.plot(x, y, label=label, color=color, linestyle=get_linestyle(index))
 
-def plot_stacked_line(x, d_label_values, include_count = False, order=None, d_label_colors=None):
+def plot_stacked_line(x: list, d_label_values: dict[str, list], include_count = False, order:list[str]=None, d_label_colors:dict[str, str]=None):
     """This plots a series of stacked lines, ordered by the dictionary of labels and value arrays."""
     labels = []
     colors = []
     all_values = []
     if order is None:
         order = list(d_label_values.keys())
-    for label in order:
+    for label in sorted(d_label_values.keys(), key=lambda k: order.index(k) if k in order else len(order)):
         all_values.append(d_label_values[label])
         array = d_label_values[label]
         if include_count:
