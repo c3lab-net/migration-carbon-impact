@@ -42,7 +42,7 @@ spec:
         - name: num_edges
           value: "165000000"
         - name: write_batch_size
-          value: "10"
+          value: "256"
         envFrom:
         - secretRef:
             name: taobench-cockroachdb-client
@@ -52,10 +52,10 @@ spec:
         resources:
           requests:
             cpu: "4"
-            memory: 4Gi
+            memory: 8Gi
           limits:
             cpu: "4"
-            memory: 4Gi
+            memory: 8Gi
       volumes:
       - name: client-certs
         secret:
