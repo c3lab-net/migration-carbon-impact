@@ -40,7 +40,7 @@ spec:
         - name: num_threads
           value: "50"
         - name: num_edges
-          value: "165000000"
+          value: "16500000" # 10% of recommended size
         - name: write_batch_size
           value: "256"
         envFrom:
