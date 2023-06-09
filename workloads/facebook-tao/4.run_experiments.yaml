@@ -76,3 +76,10 @@ spec:
       restartPolicy: Never
       imagePullSecrets:
         - name: regcred
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/region
+              labelSelector:
+                matchLabels:
+                  "app": "taobench-cockroachdb"
