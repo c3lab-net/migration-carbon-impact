@@ -1,13 +1,14 @@
 #!/bin/bash
 
 set -e
+set -x
 
 kubectl create -f cockroachdb-statefulset.yaml
 
-kubectl get pods
-
 # Wait till all are running
-sleep 15
+kubectl wait pod --for=jsonpath='{.status.phase}'=Running -l app=taobench-cockroachdb
+
+kubectl get pods -l app=taobench-cockroachdb
 
 # Run cockroach init on one of the pods to complete initialization
 kubectl exec -it taobench-cockroachdb-0 \
