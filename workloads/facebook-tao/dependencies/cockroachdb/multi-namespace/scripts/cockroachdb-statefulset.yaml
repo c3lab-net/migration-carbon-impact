@@ -88,13 +88,21 @@ spec:
             --locality LOCALITYLIST
             --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB
             --max-sql-memory $(expr $MEMORY_LIMIT_MIB / 4)MiB
+        resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+              ephemeral-storage: 64Gi
+            limits:
+              cpu: "2"
+              memory: "8Gi"
+              ephemeral-storage: 64Gi
       # No pre-stop hook is required, a SIGTERM plus some time is all that's
       # needed for graceful shutdown of a node.
       terminationGracePeriodSeconds: 60
       volumes:
       - name: datadir
-        persistentVolumeClaim:
-          claimName: datadir
+        emptyDir: {}
       - name: certs
         secret:
           secretName: taobench.cockroachdb.node
@@ -102,12 +110,3 @@ spec:
   podManagementPolicy: Parallel
   updateStrategy:
     type: RollingUpdate
-  volumeClaimTemplates:
-  - metadata:
-      name: datadir
-    spec:
-      accessModes:
-        - "ReadWriteOnce"
-      resources:
-        requests:
-          storage: 100Gi
