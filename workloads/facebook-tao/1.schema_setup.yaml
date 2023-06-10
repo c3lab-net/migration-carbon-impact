@@ -27,10 +27,7 @@ spec:
             --execute="$SQL_SCRIPT"
         env:
           - name: CRDB_DB
-            valueFrom:
-              secretKeyRef:
-                name: taobench-cockroachdb-client
-                key: CRDB_DB
+            value: taobench
           - name: CRDB_HOST
             value: taobench-cockroachdb-public
           - name: SQL_SCRIPT

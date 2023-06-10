@@ -23,12 +23,15 @@ spec:
             -load -n "$num_edges"
             -property write_batch_size="$write_batch_size"
         env:
+        - name: CRDB_DB
+          value: taobench
         - name: CRDB_HOST
           value: taobench-cockroachdb-public
         - name: CRDB_CLIENT_CERT_DIR
           value: /cockroach-certs
         - name: CRDB_CONNECTION_STRING
-          # Note: Use "postgresql://$(CRDB_USER):$(CRDB_PASSWORD)@$(CRDB_HOST)" if not using cert.
+          # Note: Use "postgresql://$(CRDB_USER):$(CRDB_PASSWORD)@$(CRDB_HOST)" and
+          #   load secret "taobench-cockroachdb-client" if not using cert.
           value: "postgresql://$(CRDB_HOST):26257\
                     /$(CRDB_DB)?sslmode=verify-full&\
                     sslrootcert=$(CRDB_CLIENT_CERT_DIR)/ca.crt&\
@@ -43,9 +46,6 @@ spec:
           value: "16500000" # 10% of recommended size
         - name: write_batch_size
           value: "256"
-        envFrom:
-        - secretRef:
-            name: taobench-cockroachdb-client
         volumeMounts:
         - name: client-certs
           mountPath: /cockroach-certs
