@@ -132,7 +132,7 @@ for zone, context in contexts.items():
         locality = 'zone=%s' % (zone)
     yaml_file = '%s/cockroachdb-statefulset-%s.yaml' % (generated_files_dir, zone)
     with open(yaml_file, 'w') as f:
-        check_call(['sed', 's/JOINLIST/%s/g;s/LOCALITYLIST/%s/g' % (join_str, locality), 'cockroachdb-statefulset.yaml'], stdout=f)
+        check_call(['sed', 's/JOINLIST/%s/g;s/LOCALITYLIST/%s/g;s/REGION/%s/g' % (join_str, locality, regions[zone]), 'cockroachdb-statefulset.yaml'], stdout=f)
     check_call(['kubectl', 'apply', '-f', yaml_file, '--namespace', zone, '--context', context])
 
 # Finally, initialize the cluster.
