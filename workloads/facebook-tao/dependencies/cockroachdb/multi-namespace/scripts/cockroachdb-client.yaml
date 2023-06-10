@@ -1,14 +1,13 @@
-# Generated file, DO NOT EDIT. Source: cloud/kubernetes/templates/multiregion/client-secure.yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: cockroachdb-client-secure
+  name: taobench-cockroachdb-client
   labels:
-    app: cockroachdb-client
+    app: taobench-cockroachdb-client
 spec:
   serviceAccountName: cockroachdb
   containers:
-  - name: cockroachdb-client
+  - name: taobench-cockroachdb-client
     image: cockroachdb/cockroach:v23.1.2
     imagePullPolicy: IfNotPresent
     volumeMounts:
@@ -19,10 +18,17 @@ spec:
     command:
     - sleep
     - "2147483648" # 2^31
+    resources:
+      requests:
+        cpu: 500m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 256Mi
   # This pod isn't doing anything important, so don't bother waiting to terminate it.
   terminationGracePeriodSeconds: 0
   volumes:
   - name: client-certs
     secret:
-      secretName: cockroachdb.client.root
+      secretName: taobench.cockroachdb.client.root
       defaultMode: 256

@@ -1,54 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import distutils.spawn
-import json
 import os
 from subprocess import check_call,check_output
 from sys import exit
 from time import sleep
 
-# Before running the script, fill in appropriate values for all the parameters
-# above the dashed line.
-
-# Fill in the `contexts` map with the zones of your clusters and their
-# corresponding kubectl context names.
-#
-# To get the names of your kubectl "contexts" for each of your clusters, run:
-#   kubectl config get-contexts
-#
-# example:
-# contexts = {
-#     'us-central1-a': 'gke_cockroach-alex_us-central1-a_my-cluster',
-#     'us-central1-b': 'gke_cockroach-alex_us-central1-b_my-cluster',
-#     'us-west1-b': 'gke_cockroach-alex_us-west1-b_my-cluster',
-# }
-contexts = {
-}
-
-# Fill in the `regions` map with the zones and corresponding regions of your
-# clusters.
-#
-# Setting regions is optional, but recommended, because it improves cockroach's
-# ability to diversify data placement if you use more than one zone in the same
-# region. If you aren't specifying regions, just leave the map empty.
-#
-# example:
-# regions = {
-#     'us-central1-a': 'us-central1',
-#     'us-central1-b': 'us-central1',
-#     'us-west1-b': 'us-west1',
-# }
-regions = {
-}
-
-# Paths to directories in which to store certificates and generated YAML files.
-certs_dir = './certs'
-ca_key_dir = './my-safe-directory'
-generated_files_dir = './generated'
-
-# Path to the cockroach binary on your local machine that you want to use
-# generate certificates. Defaults to trying to find cockroach in your PATH.
-cockroach_path = 'cockroach'
+from config import *
 
 # ------------------------------------------------------------------------------
 
@@ -66,24 +23,16 @@ except:
 
 for zone, context in contexts.items():
     try:
-        check_call(['kubectl', 'get', 'pods', '--context', context])
+        check_call(['kubectl', 'get', 'pods', '--namespace', zone])
     except:
         exit("unable to make basic API call using kubectl context '%s' for cluster in zone '%s'; please check if the context is correct and your Kubernetes cluster is working" % (context, zone))
 
-# Set up the necessary directories and certificates. Ignore errors because they may already exist.
-try:
-    os.mkdir(certs_dir)
-except OSError:
-    pass
-try:
-    os.mkdir(ca_key_dir)
-except OSError:
-    pass
-try:
-    os.mkdir(generated_files_dir)
-except OSError:
-    pass
+# Set up the necessary directories and certificates.
+os.makedirs(certs_dir, exist_ok=True)
+os.makedirs(ca_key_dir, exist_ok=True)
+os.makedirs(generated_files_dir, exist_ok=True)
 
+print("Generating certificates ...")
 check_call([cockroach_path, 'cert', 'create-ca', '--certs-dir', certs_dir, '--ca-key', ca_key_dir+'/ca.key'])
 check_call([cockroach_path, 'cert', 'create-client', 'root', '--certs-dir', certs_dir, '--ca-key', ca_key_dir+'/ca.key'])
 
@@ -93,16 +42,18 @@ check_call([cockroach_path, 'cert', 'create-client', 'root', '--certs-dir', cert
 # namespace to use without additional steps.
 #
 # Also create a load balancer to each cluster's DNS pods.
+print("Creating secrets ...")
 for zone, context in contexts.items():
-    check_call(['kubectl', 'create', 'namespace', zone, '--context', context])
-    check_call(['kubectl', 'create', 'secret', 'generic', 'cockroachdb.client.root', '--from-file', certs_dir, '--context', context])
-    check_call(['kubectl', 'create', 'secret', 'generic', 'cockroachdb.client.root', '--namespace', zone, '--from-file', certs_dir, '--context', context])
-    check_call([cockroach_path, 'cert', 'create-node', '--certs-dir', certs_dir, '--ca-key', ca_key_dir+'/ca.key', 'localhost', '127.0.0.1', 'cockroachdb-public', 'cockroachdb-public.default', 'cockroachdb-public.'+zone, 'cockroachdb-public.%s.svc.cluster.local' % (zone), '*.cockroachdb', '*.cockroachdb.'+zone, '*.cockroachdb.%s.svc.cluster.local' % (zone)])
-    check_call(['kubectl', 'create', 'secret', 'generic', 'cockroachdb.node', '--namespace', zone, '--from-file', certs_dir, '--context', context])
+    print(zone, context)
+    # check_call(['kubectl', 'create', 'namespace', zone, '--context', context])
+    check_call(['kubectl', 'create', 'secret', 'generic', 'taobench.cockroachdb.client.root', '--from-file', certs_dir, '--namespace', zone])
+    check_call([cockroach_path, 'cert', 'create-node', '--certs-dir', certs_dir, '--ca-key', ca_key_dir+'/ca.key', 'localhost', '127.0.0.1', 'taobench-cockroachdb-public', 'taobench-cockroachdb-public.default', 'taobench-cockroachdb-public.'+zone, 'taobench-cockroachdb-public.%s.svc.cluster.local' % (zone), '*.taobench-cockroachdb', '*.taobench-cockroachdb.'+zone, '*.taobench-cockroachdb.%s.svc.cluster.local' % (zone)])
+    check_call(['kubectl', 'create', 'secret', 'generic', 'taobench.cockroachdb.node', '--namespace', zone, '--from-file', certs_dir, '--context', context])
     check_call('rm %s/node.*' % (certs_dir), shell=True)
 
-    check_call(['kubectl', 'apply', '-f', 'dns-lb.yaml', '--context', context])
+    # check_call(['kubectl', 'apply', '-f', 'dns-lb.yaml', '--context', context])
 
+"""
 # Set up each cluster to forward DNS requests for zone-scoped namespaces to the
 # relevant cluster's DNS server, using load balancers in order to create a
 # static IP for each cluster's DNS endpoint.
@@ -117,7 +68,9 @@ for zone, context in contexts.items():
         sleep(10)
     print 'DNS endpoint for zone %s: %s' % (zone, external_ip)
     dns_ips[zone] = external_ip
+"""
 
+'''
 # Update each cluster's DNS configuration with an appropriate configmap. Note
 # that we have to leave the local cluster out of its own configmap to avoid
 # infinite recursion through the load balancer IP. We then have to delete the
@@ -142,37 +95,53 @@ data:
 """ % (json.dumps(remote_dns_ips)))
     check_call(['kubectl', 'apply', '-f', config_filename, '--namespace', 'kube-system', '--context', context])
     check_call(['kubectl', 'delete', 'pods', '-l', 'k8s-app=kube-dns', '--namespace', 'kube-system', '--context', context])
+'''
 
 # Create a cockroachdb-public service in the default namespace in each cluster.
+print("Creating public services ...")
 for zone, context in contexts.items():
+    print(zone, context)
     yaml_file = '%s/external-name-svc-%s.yaml' % (generated_files_dir, zone)
     with open(yaml_file, 'w') as f:
-        check_call(['sed', 's/YOUR_ZONE_HERE/%s/g' % (zone), 'external-name-svc.yaml'], stdout=f)
+        check_call(['sed', 's/NAMESPACE/%s/g' % (zone), 'external-name-svc.yaml'], stdout=f)
     check_call(['kubectl', 'apply', '-f', yaml_file, '--context', context])
 
 # Generate the join string to be used.
 join_addrs = []
 for zone in contexts:
     for i in range(3):
-        join_addrs.append('cockroachdb-%d.cockroachdb.%s' % (i, zone))
+        join_addrs.append('taobench-cockroachdb-%d.taobench-cockroachdb.%s' % (i, zone))
 join_str = ','.join(join_addrs)
 
-# Create the cockroach resources in each cluster.
+# Create the cockroach long-lived resources in each cluster.
+print("Creating long-lived resources ...")
 for zone, context in contexts.items():
+    print(zone, context)
+    yaml_file = '%s/cockroachdb-cockroachdb-roles_accounts_services-%s.yaml' % (generated_files_dir, zone)
+    with open(yaml_file, 'w') as f:
+        check_call(['sed', 's/NAMESPACE/%s/g' % zone, 'cockroachdb-roles_accounts_services.yaml'], stdout=f)
+    check_call(['kubectl', 'apply', '-f', yaml_file, '--namespace', zone, '--context', context])
+
+# Create the cockroach statefulsets in each cluster.
+print("Creating statefulsets ...")
+for zone, context in contexts.items():
+    print(zone, context)
     if zone in regions:
         locality = 'region=%s,zone=%s' % (regions[zone], zone)
     else:
         locality = 'zone=%s' % (zone)
     yaml_file = '%s/cockroachdb-statefulset-%s.yaml' % (generated_files_dir, zone)
     with open(yaml_file, 'w') as f:
-        check_call(['sed', 's/JOINLIST/%s/g;s/LOCALITYLIST/%s/g' % (join_str, locality), 'cockroachdb-statefulset-secure.yaml'], stdout=f)
+        check_call(['sed', 's/JOINLIST/%s/g;s/LOCALITYLIST/%s/g' % (join_str, locality), 'cockroachdb-statefulset.yaml'], stdout=f)
     check_call(['kubectl', 'apply', '-f', yaml_file, '--namespace', zone, '--context', context])
 
 # Finally, initialize the cluster.
-print 'Sleeping 30 seconds before attempting to initialize cluster to give time for volumes to be created and pods started.'
-sleep(30)
+print('Waiting till all stateful sets are running')
 for zone, context in contexts.items():
-    check_call(['kubectl', 'create', '-f', 'cluster-init-secure.yaml', '--namespace', zone, '--context', context])
+    check_call(['kubectl', 'wait', 'pod', '--for=jsonpath={.status.phase}=Running', '-l', 'app=taobench-cockroachdb', '--namespace', zone, '--context', context])
+
+for zone, context in contexts.items():
+    check_call(['kubectl', 'create', '-f', 'cockroachdb-cluster-init.yaml', '--namespace', zone, '--context', context])
     # We only need run the init command in one zone given that all the zones are
     # joined together as one cluster.
     break

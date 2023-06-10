@@ -1,14 +1,13 @@
-# Generated file, DO NOT EDIT. Source: cloud/kubernetes/templates/multiregion/cluster-init-secure.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cluster-init-secure
+  name: taobench-cluster-init
   labels:
-    app: cockroachdb
+    app: taobench-cockroachdb
 spec:
   template:
     spec:
-      serviceAccountName: cockroachdb
+      serviceAccountName: taobench-cockroachdb
       containers:
       - name: cluster-init
         image: cockroachdb/cockroach:v23.1.2
@@ -20,10 +19,17 @@ spec:
           - "/cockroach/cockroach"
           - "init"
           - "--certs-dir=/cockroach-certs"
-          - "--host=cockroachdb-0.cockroachdb"
+          - "--host=taobench-cockroachdb-0.taobench-cockroachdb"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
       restartPolicy: OnFailure
       volumes:
       - name: client-certs
         secret:
-          secretName: cockroachdb.client.root
+          secretName: taobench.cockroachdb.client.root
           defaultMode: 256
