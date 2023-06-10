@@ -145,3 +145,7 @@ for zone, context in contexts.items():
     # We only need run the init command in one zone given that all the zones are
     # joined together as one cluster.
     break
+
+print('Waiting till all CRDB pods are initialized/ready')
+for zone, context in contexts.items():
+    check_call(['kubectl', 'wait', 'pod', '--for=condition=ready', '-l', 'app=taobench-cockroachdb', '--namespace', zone, '--context', context])
