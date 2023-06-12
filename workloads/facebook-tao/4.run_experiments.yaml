@@ -72,7 +72,7 @@ spec:
           defaultMode: 0400
       - name: experiments-dir
         persistentVolumeClaim:
-          claimName: facebook-taobench-experiments
+          claimName: facebook-taobench-experiments-shared
       restartPolicy: Never
       imagePullSecrets:
         - name: regcred

@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: facebook-taobench-experiments
+  name: facebook-taobench-experiments-shared
   labels:
     project: taobench
     app: taobench-app
 spec:
-  storageClassName: rook-ceph-block
+  storageClassName: rook-cephfs
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 1Gi
