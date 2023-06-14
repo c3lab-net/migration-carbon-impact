@@ -18,6 +18,8 @@ spec:
         project: taobench
         app: taobench-cockroachdb
     spec:
+      nodeSelector:
+        nautilus.io/disktype: nvme
       serviceAccountName: taobench-cockroachdb
       affinity:
         podAntiAffinity:
