@@ -63,12 +63,12 @@ spec:
         # Note that requests and limits should have identical values.
         resources:
           requests:
-            cpu: "2"
-            memory: "8Gi"
+            cpu: "1"
+            memory: "4Gi"
             ephemeral-storage: 64Gi
           limits:
-            cpu: "2"
-            memory: "8Gi"
+            cpu: "1"
+            memory: "4Gi"
             ephemeral-storage: 64Gi
         ports:
         - containerPort: 26257

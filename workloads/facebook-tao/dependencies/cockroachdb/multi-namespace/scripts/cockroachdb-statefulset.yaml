@@ -107,12 +107,12 @@ spec:
             --max-sql-memory 0.35
         resources:
             requests:
-              cpu: "2"
-              memory: "8Gi"
+              cpu: "1"
+              memory: "4Gi"
               ephemeral-storage: 64Gi
             limits:
-              cpu: "2"
-              memory: "8Gi"
+              cpu: "1"
+              memory: "4Gi"
               ephemeral-storage: 64Gi
       # No pre-stop hook is required, a SIGTERM plus some time is all that's
       # needed for graceful shutdown of a node.
