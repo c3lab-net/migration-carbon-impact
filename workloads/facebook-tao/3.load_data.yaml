@@ -41,7 +41,7 @@ spec:
           value: "workload_a"
           # value: "workload_o"
         - name: num_threads
-          value: "50"
+          value: "100"
         - name: num_edges
           value: "16500000" # 10% of recommended size
         - name: write_batch_size
