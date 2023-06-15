@@ -23,22 +23,20 @@ spec:
       serviceAccountName: taobench-cockroachdb
       affinity:
         podAntiAffinity:
-          # deliberately assign pods to different regions
           requiredDuringSchedulingIgnoredDuringExecution:
+            # Assign to different hosts for better fault tolerance
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  "app": "taobench-cockroachdb"
+            # deliberately assign pods to different regions
             - topologyKey: topology.kubernetes.io/region
               labelSelector:
                 matchLabels:
                   "app": "taobench-cockroachdb"
-          # preferredDuringSchedulingIgnoredDuringExecution:
-          # - weight: 100
-          #   podAffinityTerm:
-          #     topologyKey: topology.kubernetes.io/zone
-          #     labelSelector:
-          #       matchLabels:
-          #         "app": "taobench-cockroachdb"
-        # # Restrict to the same zone to keep latency low
         # podAffinity:
         #   requiredDuringSchedulingIgnoredDuringExecution:
+        #     # Restrict to the same zone to keep latency low
         #     - topologyKey: topology.kubernetes.io/zone
         #       labelSelector:
         #         matchLabels:
