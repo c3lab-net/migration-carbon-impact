@@ -24,6 +24,8 @@ spec:
               16,10,150
               128,10,150
               1024,10,150
+              8192,10,150
+              65536,10,150
         volumeMounts:
         - name: experiments-dir
           mountPath: /experiments

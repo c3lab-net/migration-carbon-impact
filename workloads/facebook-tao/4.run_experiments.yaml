@@ -61,10 +61,10 @@ spec:
         resources:
           requests:
             cpu: "4"
-            memory: 1Gi
+            memory: 4Gi
           limits:
-            cpu: "4"
-            memory: 1Gi
+            cpu: "8"
+            memory: 8Gi
       volumes:
       - name: client-certs
         secret:
