@@ -103,8 +103,8 @@ spec:
             --http-addr 0.0.0.0
             --join JOINLIST
             --locality LOCALITYLIST
-            --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB
-            --max-sql-memory $(expr $MEMORY_LIMIT_MIB / 4)MiB
+            --cache 0.25
+            --max-sql-memory 0.25
         resources:
             requests:
               cpu: "2"
