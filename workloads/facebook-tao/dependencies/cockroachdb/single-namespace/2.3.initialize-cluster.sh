@@ -6,7 +6,7 @@ set -x
 kubectl create -f cockroachdb-statefulset.yaml
 
 # Wait till all are running
-kubectl wait pod --for=jsonpath='{.status.phase}'=Running -l app=taobench-cockroachdb
+kubectl wait pod --for=jsonpath='{.status.phase}'=Running --timeout=5m -l app=taobench-cockroachdb
 
 kubectl get pods -l app=taobench-cockroachdb
 
@@ -16,6 +16,6 @@ kubectl exec -it taobench-cockroachdb-0 \
     --certs-dir=/cockroach/cockroach-certs
 
 # Wait till all are ready
-kubectl wait pods --for=condition=ready -l app=taobench-cockroachdb
+kubectl wait pods --for=condition=ready --timeout=3m -l app=taobench-cockroachdb
 
 kubectl get pods
