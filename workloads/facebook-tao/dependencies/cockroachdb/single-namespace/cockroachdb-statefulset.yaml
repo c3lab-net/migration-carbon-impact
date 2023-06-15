@@ -126,8 +126,8 @@ spec:
             --advertise-host $(hostname -f)
             --http-addr 0.0.0.0
             --join taobench-cockroachdb-0.taobench-cockroachdb,taobench-cockroachdb-1.taobench-cockroachdb,taobench-cockroachdb-2.taobench-cockroachdb
-            --cache 0.25
-            --max-sql-memory 0.25
+            --cache 0.35
+            --max-sql-memory 0.35
             --locality=region="$(curl -s $NODEINFO_API/$NODENAME/region)",zone="$(curl -s $NODEINFO_API/$NODENAME/zone)"
       # No pre-stop hook is required, a SIGTERM plus some time is all that's
       # needed for graceful shutdown of a node.
