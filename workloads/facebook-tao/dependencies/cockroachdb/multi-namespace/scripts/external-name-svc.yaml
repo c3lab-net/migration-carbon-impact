@@ -1,0 +1,7 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: taobench-cockroachdb-public
+spec:
+  type: ExternalName
+  externalName: taobench-cockroachdb-public.NAMESPACE.svc.cluster.local

@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taobench-cluster-init
+  labels:
+    app: taobench-cockroachdb
+spec:
+  template:
+    spec:
+      serviceAccountName: taobench-cockroachdb
+      containers:
+      - name: cluster-init
+        image: cockroachdb/cockroach:v23.1.2
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: client-certs
+          mountPath: /cockroach-certs
+        command:
+          - "/cockroach/cockroach"
+          - "init"
+          - "--certs-dir=/cockroach-certs"
+          - "--host=taobench-cockroachdb-0.taobench-cockroachdb"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+      restartPolicy: OnFailure
+      volumes:
+      - name: client-certs
+        secret:
+          secretName: taobench.cockroachdb.client.root
+          defaultMode: 256

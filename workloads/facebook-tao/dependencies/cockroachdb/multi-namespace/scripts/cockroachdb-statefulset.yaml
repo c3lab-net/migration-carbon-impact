@@ -6,41 +6,38 @@ metadata:
     project: taobench
     app: taobench-cockroachdb
 spec:
-  serviceName: "taobench-cockroachdb"
+  serviceName: taobench-cockroachdb
   replicas: 3
   selector:
     matchLabels:
-      project: taobench
       app: taobench-cockroachdb
   template:
     metadata:
       labels:
-        project: taobench
         app: taobench-cockroachdb
     spec:
+      nodeSelector:
+        nautilus.io/disktype: nvme
       serviceAccountName: taobench-cockroachdb
       affinity:
         podAntiAffinity:
-          # deliberately assign pods to different regions
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - taobench-cockroachdb
+              topologyKey: kubernetes.io/hostname
+        # Restrict to the same zone to keep latency low
+        podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-            - topologyKey: topology.kubernetes.io/region
+            - topologyKey: topology.kubernetes.io/zone
               labelSelector:
                 matchLabels:
                   "app": "taobench-cockroachdb"
-          # preferredDuringSchedulingIgnoredDuringExecution:
-          # - weight: 100
-          #   podAffinityTerm:
-          #     topologyKey: topology.kubernetes.io/zone
-          #     labelSelector:
-          #       matchLabels:
-          #         "app": "taobench-cockroachdb"
-        # # Restrict to the same zone to keep latency low
-        # podAffinity:
-        #   requiredDuringSchedulingIgnoredDuringExecution:
-        #     - topologyKey: topology.kubernetes.io/zone
-        #       labelSelector:
-        #         matchLabels:
-        #           "app": "taobench-cockroachdb"
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
@@ -48,26 +45,11 @@ spec:
                   - key: topology.kubernetes.io/region
                     operator: In
                     values:
-                      - "us-west"
-                      - "us-east"
-                      - "us-central"
+                      - REGION
       containers:
-      - name: cockroachdb
-        image: cockroachdb/cockroach:v22.2.9
+      - name: taobench-cockroachdb
+        image: cockroachdb/cockroach:v23.1.2
         imagePullPolicy: IfNotPresent
-        # TODO: Change these to appropriate values for the hardware that you're running. You can see
-        # the resources that can be allocated on each of your Kubernetes nodes by running:
-        #   kubectl describe nodes
-        # Note that requests and limits should have identical values.
-        resources:
-          requests:
-            cpu: "2"
-            memory: "8Gi"
-            ephemeral-storage: 64Gi
-          limits:
-            cpu: "2"
-            memory: "8Gi"
-            ephemeral-storage: 64Gi
         ports:
         - containerPort: 26257
           name: grpc
@@ -96,7 +78,7 @@ spec:
           mountPath: /cockroach/cockroach-certs
         env:
         - name: COCKROACH_CHANNEL
-          value: kubernetes-secure
+          value: kubernetes-multiregion
         - name: GOMAXPROCS
           valueFrom:
             resourceFieldRef:
@@ -107,12 +89,6 @@ spec:
             resourceFieldRef:
               resource: limits.memory
               divisor: "1Mi"
-        - name: NODENAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        - name: NODEINFO_API
-          value: cas-node-info
         command:
           - "/bin/bash"
           - "-ecx"
@@ -125,11 +101,19 @@ spec:
             --certs-dir /cockroach/cockroach-certs
             --advertise-host $(hostname -f)
             --http-addr 0.0.0.0
-            --join taobench-cockroachdb-0.taobench-cockroachdb,taobench-cockroachdb-1.taobench-cockroachdb,taobench-cockroachdb-2.taobench-cockroachdb
-            --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB
-            --max-sql-memory $(expr $MEMORY_LIMIT_MIB / 4)MiB
-            --max-offset 500ms
-            --locality=region="$(curl -s $NODEINFO_API/$NODENAME/region)",zone="$(curl -s $NODEINFO_API/$NODENAME/zone)"
+            --join JOINLIST
+            --locality LOCALITYLIST
+            --cache 0.25
+            --max-sql-memory 0.25
+        resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+              ephemeral-storage: 64Gi
+            limits:
+              cpu: "2"
+              memory: "8Gi"
+              ephemeral-storage: 64Gi
       # No pre-stop hook is required, a SIGTERM plus some time is all that's
       # needed for graceful shutdown of a node.
       terminationGracePeriodSeconds: 60

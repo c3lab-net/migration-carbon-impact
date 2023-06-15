@@ -27,7 +27,7 @@ function get_k8s_secret_literal()
 CRDB_USER="$(get_k8s_secret_literal "taobench-cockroachdb-client" "CRDB_USER")"
 CRDB_PASSWORD="$(get_k8s_secret_literal "taobench-cockroachdb-client" "CRDB_PASSWORD")"
 
-kubectl wait --for=condition=ready pod taobench-cockroachdb-client
+kubectl wait --for=condition=ready pod taobench-cockroachdb-client --timeout=3m
 kubectl exec -it taobench-cockroachdb-client \
     -- ./cockroach sql \
     --certs-dir=/cockroach-certs \
