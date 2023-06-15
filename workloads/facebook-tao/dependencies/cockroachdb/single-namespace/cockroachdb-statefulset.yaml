@@ -51,8 +51,8 @@ spec:
                     operator: In
                     values:
                       - "us-west"
-                      - "us-east"
-                      - "us-central"
+                      # - "us-east"
+                      # - "us-central"
       containers:
       - name: cockroachdb
         image: cockroachdb/cockroach:v22.2.9
