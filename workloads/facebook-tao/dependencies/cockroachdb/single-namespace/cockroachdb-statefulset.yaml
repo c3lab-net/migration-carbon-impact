@@ -29,11 +29,11 @@ spec:
               labelSelector:
                 matchLabels:
                   "app": "taobench-cockroachdb"
-            # deliberately assign pods to different regions
-            - topologyKey: topology.kubernetes.io/region
-              labelSelector:
-                matchLabels:
-                  "app": "taobench-cockroachdb"
+            # # deliberately assign pods to different regions
+            # - topologyKey: topology.kubernetes.io/region
+            #   labelSelector:
+            #     matchLabels:
+            #       "app": "taobench-cockroachdb"
         # podAffinity:
         #   requiredDuringSchedulingIgnoredDuringExecution:
         #     # Restrict to the same zone to keep latency low
@@ -49,8 +49,8 @@ spec:
                     operator: In
                     values:
                       - "us-west"
-                      - "us-east"
-                      - "us-central"
+                      # - "us-east"
+                      # - "us-central"
       containers:
       - name: cockroachdb
         image: cockroachdb/cockroach:v23.1.2
