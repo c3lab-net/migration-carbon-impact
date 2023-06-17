@@ -111,7 +111,7 @@ run_up_to_threads() {
 
 main()
 {
-    echo >&2 "Job $JOB_INDEX running on $NODENAME ..."
+    echo "Job $JOB_INDEX running on $NODENAME ..." | tee -a "$outfile";
     if [ $JOB_INDEX -eq 0 ]; then
         log_and_run /cockroach/cockroach workload init $WORKLOAD $INIT_ARGS "$CRDB_CONNECTION_STRING";
     fi
