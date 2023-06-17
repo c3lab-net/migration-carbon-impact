@@ -65,10 +65,10 @@ wait_for_client0()
     port="$((BASE_PORT + $JOB_INDEX))"
     local retry_count=0
     while ! nc -z $host $port; do
-        echo >&2 "Server not up yet, sleeping for 15s ..."
-        sleep 15
+        echo >&2 "Server not up yet, sleeping for 60s ..."
+        sleep 30
         retry_count=$((retry_count + 1))
-        if [ $retry_count -gt 8 ]; then
+        if [ $retry_count -gt 10 ]; then
             echo >&2 "Server still not up after $retry_count retries. Aborting ..."
             exit 3;
         fi
@@ -105,7 +105,7 @@ run_up_to_threads() {
         barrier
         log_and_run /cockroach/cockroach workload run $WORKLOAD --concurrency $c $RUN_ARGS "$CRDB_CONNECTION_STRING";
         # sleep $SLEEP_TIME;    # Moved inside barrier call
-        c=$((c * 2));
+        c=$((c * 4));
     done
 }
 

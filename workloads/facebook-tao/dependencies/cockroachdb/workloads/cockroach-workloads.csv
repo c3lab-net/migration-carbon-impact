@@ -1,8 +1,8 @@
 name,workload,init_args,run_args
-ycsb-a,ycsb,--drop --concurrency 8,--duration=90s --workload A
-ycsb-b,ycsb,--drop --concurrency 8,--duration=90s --workload B
-kv-95-5,kv,--drop --concurrency 8,--duration=90s --read-percent 95
-kv-50-50,kv,--drop --concurrency 8,--duration=90s --read-percent 50
-bank,bank,--drop --concurrency 8,--duration=90s
-movr,movr,--drop --concurrency 8,--duration=90s
-tpcc,tpcc,--drop --concurrency 8,--duration=90s
+ycsb-a,ycsb,--drop --concurrency 8,--duration=5m --workload A
+ycsb-b,ycsb,--drop --concurrency 8,--duration=5m --workload B
+kv-95-5,kv,--drop --concurrency 8,--duration=5m --read-percent 95
+kv-50-50,kv,--drop --concurrency 8,--duration=5m --read-percent 50
+bank,bank,--drop --concurrency 8,--duration=5m
+movr,movr,--drop --concurrency 8,--duration=5m
+tpcc,tpcc,--drop --concurrency 8,--duration=5m
