@@ -20,7 +20,7 @@ check_vars NODENAME
 
 JOB_INDEX=$JOB_COMPLETION_INDEX
 
-outfile="/experiments/crdb.workload.$WORKLOAD.$TIMESTAMP.client$JOB_INDEX.txt";
+outfile="/experiments/crdb.workload.$JOB_NAME.$TIMESTAMP.client$JOB_INDEX.txt";
 
 BASE_PORT=10000
 
