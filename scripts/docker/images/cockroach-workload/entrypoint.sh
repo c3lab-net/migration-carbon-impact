@@ -24,58 +24,64 @@ outfile="/experiments/crdb.workload.$JOB_NAME.$TIMESTAMP.client$JOB_INDEX.txt";
 
 BASE_PORT=10000
 
+log()
+{
+    echo >&2 -e -n "$(date -u +'%FT%T')\t"
+    echo >&2 "$@"
+}
+
 wait_for_others()
 {
-    echo >&2 "Waiting for others jobs to come online ..."
+    log "Waiting for others jobs to come online ..."
     for n in $(seq 1 $((PARALLELISM - 1))); do
         nc -l -p $((BASE_PORT + $n)) &
     done
     wait
     sleep 5
-    echo >&2 "Done"
+    log "Done"
 }
 
 broadcast_start_ts()
 {
     local start_ts=$1
-    echo >&2 "Broadcasting starting time of $(date -d @$start_ts) ..."
+    log "Broadcasting starting time of $(date -d @$start_ts) ..."
     for n in $(seq 1 $((PARALLELISM - 1))); do
         host="$JOB_NAME-$n.$SERVICE_NAME"
         port="$((BASE_PORT + $n))"
         echo $start_ts | nc $host $port &
     done
     wait
-    echo >&2 "Done"
+    log "Done"
 }
 
 sleep_till()
 {
     local target=$1
-    echo >&2 "Sleeping until $(date -d @$target) ..."
+    log "Sleeping until $(date -d @$target) ..."
     diff=$(($target - $(date +%s)))
     if [ $diff -lt 0 ]; then { echo >&2 "Target timestamp is in the past, aborting ..."; exit 3; } fi
     sleep $diff
-    echo >&2 "Woke up for a target timestamp $(date -d @$target) at $(date)."
+    log "Woke up for a target timestamp $(date -d @$target) at $(date)."
 }
 
 wait_for_client0()
 {
-    echo >&2 "Contacting client0 to obtain start time ..."
+    log "Contacting client0 to obtain start time ..."
     host="$JOB_NAME-0.$SERVICE_NAME"
     port="$((BASE_PORT + $JOB_INDEX))"
     local retry_count=0
     while ! nc -z $host $port; do
-        echo >&2 "Server not up yet, sleeping for 30s ..."
+        log "Server not up yet, sleeping for 30s ..."
         sleep 30
         retry_count=$((retry_count + 1))
         if [ $retry_count -gt 10 ]; then
-            echo >&2 "Server still not up after $retry_count retries. Aborting ..."
+            log "Server still not up after $retry_count retries. Aborting ..."
             exit 3;
         fi
     done
-    echo >&2 "Waiting for start time from client0 ..."
+    log "Waiting for start time from client0 ..."
     echo "$(nc -l $port)"
-    echo >&2 "Done"
+    log "Done"
 }
 
 barrier()
@@ -112,7 +118,7 @@ run_up_to_threads() {
 
 main()
 {
-    echo "Job $JOB_INDEX running on $NODENAME ..." | tee -a "$outfile";
+    log "Job $JOB_INDEX running on $NODENAME ..." 2>&1 | tee -a "$outfile";
     if [ $JOB_INDEX -eq 0 ]; then
         log_and_run /cockroach/cockroach workload init $WORKLOAD $INIT_ARGS "$CRDB_CONNECTION_STRING";
     fi
