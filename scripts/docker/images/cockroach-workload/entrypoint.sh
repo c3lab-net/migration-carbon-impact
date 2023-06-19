@@ -60,12 +60,12 @@ sleep_till()
 
 wait_for_client0()
 {
-    echo >&2 "Waiting for start time from client0 ..."
+    echo >&2 "Contacting client0 to obtain start time ..."
     host="$JOB_NAME-0.$SERVICE_NAME"
     port="$((BASE_PORT + $JOB_INDEX))"
     local retry_count=0
     while ! nc -z $host $port; do
-        echo >&2 "Server not up yet, sleeping for 60s ..."
+        echo >&2 "Server not up yet, sleeping for 30s ..."
         sleep 30
         retry_count=$((retry_count + 1))
         if [ $retry_count -gt 10 ]; then
@@ -73,6 +73,7 @@ wait_for_client0()
             exit 3;
         fi
     done
+    echo >&2 "Waiting for start time from client0 ..."
     echo "$(nc -l $port)"
     echo >&2 "Done"
 }
