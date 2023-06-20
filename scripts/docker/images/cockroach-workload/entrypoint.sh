@@ -101,7 +101,7 @@ barrier()
 
 log_and_run() {
     set -o pipefail;
-    echo -e "Time: $(date +%s)\n+ $@" | tee "$outfile";
+    echo -e "Time: $(date +%s)\n+ $@" | tee -a "$outfile";
     /usr/bin/time -v "$@" 2>&1 | tee -a "$outfile";
 }
 
