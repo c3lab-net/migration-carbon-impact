@@ -33,10 +33,14 @@ log()
 wait_for_others()
 {
     log "Waiting for others jobs to come online ..."
+    local pids=""
     for n in $(seq 1 $((PARALLELISM - 1))); do
-        nc -l -p $((BASE_PORT + $n)) &
+        timeout 5m nc -l -p $((BASE_PORT + $n)) &
+        pids+="$! "
     done
-    wait
+    for pid in $pids; do
+        wait $pid
+    done
     sleep 5
     log "Done"
 }
@@ -45,12 +49,16 @@ broadcast_start_ts()
 {
     local start_ts=$1
     log "Broadcasting starting time of $(date -d @$start_ts) ..."
+    local pids=""
     for n in $(seq 1 $((PARALLELISM - 1))); do
         host="$JOB_NAME-$n.$SERVICE_NAME"
         port="$((BASE_PORT + $n))"
-        echo $start_ts | nc $host $port &
+        echo $start_ts | timeout 5m nc $host $port &
+        pids+="$! "
     done
-    wait
+    for pid in $pids; do
+        wait $pid
+    done
     log "Done"
 }
 
@@ -70,7 +78,7 @@ wait_for_client0()
     host="$JOB_NAME-0.$SERVICE_NAME"
     port="$((BASE_PORT + $JOB_INDEX))"
     local retry_count=0
-    while ! nc -z $host $port; do
+    while ! timeout 5m nc -z $host $port; do
         log "Server not up yet, sleeping for 30s ..."
         sleep 30
         retry_count=$((retry_count + 1))
@@ -80,7 +88,7 @@ wait_for_client0()
         fi
     done
     log "Waiting for start time from client0 ..."
-    echo "$(nc -l $port)"
+    echo "$(timeout 5m nc -l $port)"
     log "Done"
 }
 
