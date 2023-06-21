@@ -84,7 +84,7 @@ spec:
               labelSelector:
                 matchLabels:
                   "app": "taobench-cockroachdb"
-  backoffLimit: 0
+  backoffLimit: 2
   # New features not yet available
   # podFailurePolicy:
   #   rules:
