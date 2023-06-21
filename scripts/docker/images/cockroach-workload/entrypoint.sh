@@ -48,7 +48,7 @@ wait_for_others()
 broadcast_start_ts()
 {
     local start_ts=$1
-    log "Broadcasting starting time of $(date -d @$start_ts) ..."
+    log "Broadcasting starting time of $(date -u +'%FT%T' -d @$start_ts) ..."
     local pids=""
     for n in $(seq 1 $((PARALLELISM - 1))); do
         host="$JOB_NAME-$n.$SERVICE_NAME"
@@ -65,11 +65,11 @@ broadcast_start_ts()
 sleep_till()
 {
     local target=$1
-    log "Sleeping until $(date -d @$target) ..."
+    log "Sleeping until $(date -u +'%FT%T' -d @$target) ..."
     diff=$(($target - $(date +%s)))
     if [ $diff -lt 0 ]; then { echo >&2 "Target timestamp is in the past, aborting ..."; exit 3; } fi
     sleep $diff
-    log "Woke up for a target timestamp $(date -d @$target) at $(date)."
+    log "Woke up for a target timestamp $(date -u +'%FT%T' -d @$target) at $(date -u +'%FT%T')."
 }
 
 wait_for_client0()
@@ -109,7 +109,7 @@ barrier()
 
 log_and_run() {
     set -o pipefail;
-    echo -e "Time: $(date +%s)\n+ $@" | tee -a "$outfile";
+    log "+ $@" | tee -a "$outfile";
     /usr/bin/time -v "$@" 2>&1 | tee -a "$outfile";
 }
 
