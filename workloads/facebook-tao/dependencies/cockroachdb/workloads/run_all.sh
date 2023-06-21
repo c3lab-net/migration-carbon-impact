@@ -15,8 +15,15 @@ while [ $n -le 16 ]; do
         echo "Working on $jobname ..."
         echo "Deleting existing job/service definition ..."
         ./run.sh delete $workload $n && true
-        ./run.sh create $workload $n
-        k.wait_for_job_finish.sh crdb-$workload-"$n"x && true
+        retry_count=0
+        while [ $retry_count -le 2 ]; do
+            (set -x;
+                ./run.sh create $workload $n;
+                k.wait_for_job_finish.sh crdb-$workload-"$n"x;) && break
+            echo "Workload $jobname failed. Restarting ..."
+            (set -x; ./run.sh delete $workload $n;)
+            retry_count=$((retry_count + 1))
+        done
     done
     n=$((n * 2))
 done
