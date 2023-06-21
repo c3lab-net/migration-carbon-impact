@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: crdb-$name-${parallelism}x-headless-svc
+spec:
+  clusterIP: None # clusterIP must be None to create a headless service
+  selector:
+    # must match Job name
+    job-name: crdb-$name-${parallelism}x
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: crdb-$name-${parallelism}x
+  labels:
+    project: taobench
+    app: crdb-$name
+spec:
+  completions: $parallelism
+  parallelism: $parallelism
+  completionMode: Indexed
+  template:
+    spec:
+      subdomain: crdb-$name-${parallelism}x-headless-svc  # must match service name
+      containers:
+      - name: cockroachdb-client
+        image: gitlab-registry.nrp-nautilus.io/c3lab/workload-migration/cockroach_workload:v23.1.2
+        imagePullPolicy: Always
+        # command: [ "/entrypoint.sh" ]
+        env:
+          - name: CRDB_HOST
+            value: taobench-cockroachdb-public
+          - name: CRDB_CLIENT_CERT_DIR
+            value: /cockroach-certs
+          - name: CRDB_CONNECTION_STRING
+            value: "postgresql://$(CRDB_HOST):26257?sslmode=verify-full&sslrootcert=$(CRDB_CLIENT_CERT_DIR)/ca.crt&sslcert=$(CRDB_CLIENT_CERT_DIR)/client.root.crt&sslkey=$(CRDB_CLIENT_CERT_DIR)/client.root.key"
+          - name: WORKLOAD
+            value: "$workload"
+          - name: PARALLELISM
+            value: "$parallelism"
+          - name: TIMESTAMP
+            value: "$timestamp"
+          - name: INIT_ARGS
+            value: "$init_args"
+          - name: RUN_ARGS
+            value: "$run_args"
+          - name: SLEEP_TIME
+            value: "30"
+          - name: JOB_NAME
+            value: crdb-$name-${parallelism}x # Must match job name
+          - name: SERVICE_NAME
+            value: crdb-$name-${parallelism}x-headless-svc  # Must match service name
+          - name: NODENAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        volumeMounts:
+        - name: client-certs
+          mountPath: /cockroach-certs
+        - name: experiments-dir
+          mountPath: /experiments
+        resources:
+          requests:
+            cpu: "4"
+            memory: 4Gi
+          limits:
+            cpu: "4"
+            memory: 4Gi
+      volumes:
+      - name: client-certs
+        secret:
+          secretName: taobench.cockroachdb.client.root
+          defaultMode: 0400
+      - name: experiments-dir
+        persistentVolumeClaim:
+          claimName: facebook-taobench-experiments-shared
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: regcred
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/region
+              labelSelector:
+                matchLabels:
+                  "app": "taobench-cockroachdb"
+  backoffLimit: 2
+  # New features not yet available
+  # podFailurePolicy:
+  #   rules:
+  #   - action: FailJob
+  #     onExitCodes:
+  #       operator: In
+  #       values: [3]
