@@ -94,7 +94,7 @@ wait_for_client0()
 
 barrier()
 {
-    if [ $PARALLELISM -eq 1 ]; then return; fi
+    # if [ $PARALLELISM -eq 1 ]; then return; fi
 
     if [ $JOB_INDEX -eq 0 ]; then
         wait_for_others
