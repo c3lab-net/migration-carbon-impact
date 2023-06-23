@@ -16,7 +16,7 @@ spec:
         args:
           - >
             set -x;
-            echo "$EXPERIMENTS_TXT_CONTENT" | tee /experiments/experiments.txt
+            echo "$EXPERIMENTS_TXT_CONTENT" | tee /experiments/taobench.experiments.txt
         env:
           - name: EXPERIMENTS_TXT_CONTENT
             value: |- # Source: taobench/USAGE.md#experiments

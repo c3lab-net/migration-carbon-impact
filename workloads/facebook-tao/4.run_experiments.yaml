@@ -16,7 +16,7 @@ spec:
         args:
           - >
             timestamp="$(date --utc +%Y%m%d_%H%M%SZ)";
-            outfile="/experiments/result.$timestamp.txt";
+            outfile="/experiments/taobench.result.$timestamp.txt";
             log_and_run() {
               set -o pipefail;
               echo "+ $@" | tee "$outfile";
@@ -29,7 +29,7 @@ spec:
             -property crdb.connectionstring="$CRDB_CONNECTION_STRING"
             -c /taobench/src/"$workload".json
             -run
-            -e /experiments/experiments.txt
+            -e /experiments/taobench.experiments.txt
             -property read_batch_size="$read_batch_size"
         env:
         - name: CRDB_DB
