@@ -14,7 +14,7 @@ metadata:
   name: crdb-$name-${parallelism}x
   labels:
     project: taobench
-    app: crdb-$name
+    app: crdb-workload
 spec:
   completions: $parallelism
   parallelism: $parallelism
