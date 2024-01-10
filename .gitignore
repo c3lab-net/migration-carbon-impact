@@ -1,6 +1,8 @@
 /analysis/*.svg
 /analysis/*.png
 /analysis/*.pdf
+/analysis/*.json
 /data/
+/workloads/facebook-tao/dependencies/cockroachdb/workloads/
 /workloads/ML/imagenet_classes.txt
 /workloads/ML/LOC_synset_mapping.json
