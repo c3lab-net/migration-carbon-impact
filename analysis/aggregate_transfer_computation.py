@@ -440,7 +440,7 @@ def get_annual_figure(folder_path):
                         all_min_list += min_list
 
 
-    plot_annual_cdf(all_min_list, file_name= folder_path + "../third_all_days.png")
+    plot_annual_cdf(all_min_list, file_name= folder_path + "../minimum_CIDT.png")
 
 def main():
     args = parse_args()    
