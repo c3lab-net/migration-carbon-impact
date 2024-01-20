@@ -373,11 +373,13 @@ def parse_args():
 
     parser.add_argument('--folder-path', required=True, help='The directory to save all datas to')
     parser.add_argument('--inter_region_route_source', required=True)
+    parser.add_argument('--start-year', required=True, type=int, help='The year to start the simulation')
+    parser.add_argument('--start-month', required=False, type=int, help='The month to run the simulation')
     args = parser.parse_args()
 
     return args
 
-def plot_annual_cdf(min_data, file_name="cdf.png"):
+def plot_annual_cdf(min_data, start_year=2022, file_name="cdf.png"):
     min_data = [x for x in min_data if not math.isnan(x)]
 
     # Function to calculate and plot CDF
@@ -397,7 +399,7 @@ def plot_annual_cdf(min_data, file_name="cdf.png"):
     # Add labels and title
     plt.xlabel('CIDT (gCO2/Gb)')
     plt.ylabel('Cumulative Distribution')
-    plt.title('CDF of daily minimum CIDT across all AWS+GCP region pairs in 2022')
+    plt.title(f'CDF of daily minimum CIDT across all AWS+GCP region pairs in {start_year}')
 
     # Add grid and legend
     plt.grid(True)
@@ -410,7 +412,7 @@ def plot_annual_cdf(min_data, file_name="cdf.png"):
     plt.savefig(file_name)
     plt.show()
     
-def get_annual_figure(folder_path):
+def get_annual_figure(folder_path, start_year=2022):
     files = os.listdir(folder_path)
 
 
@@ -440,7 +442,7 @@ def get_annual_figure(folder_path):
                         all_min_list += min_list
 
 
-    plot_annual_cdf(all_min_list, file_name= folder_path + "../minimum_CIDT.png")
+    plot_annual_cdf(all_min_list, start_year, file_name= folder_path + "../minimum_CIDT.png")
 
 def main():
     args = parse_args()    
@@ -464,7 +466,12 @@ def main():
     
     payload["inter_region_route_source"] = args.inter_region_route_source
     
-    for month in range(1, 13): 
+    if args.start_month:
+        time_range = range(args.start_month, args.start_month + 1)
+    else:
+        time_range = range(1, 13)
+    
+    for month in time_range: 
         
         monthly_all_region_pair_max_list_dict = {}
         monthly_all_region_pair_min_list_dict = {}
@@ -478,8 +485,10 @@ def main():
         data_path = args.folder_path + "/data/" + str(month) + ".txt"
         dict_path = args.folder_path + "/dict/" + str(month) + ".txt"
         
-        for per_day in calendar.monthrange(2022, month)[1]:
-            start_time = datetime(2022, month, 1, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=per_day)
+        
+        
+        for per_day in calendar.monthrange(args.start_year , month)[1]:
+            start_time = datetime(args.start_year, month, 1, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=per_day)
             start_time += timedelta(seconds=random.randint(0, 3600 * 24))
 
             payload['schedule']['start_time'] = start_time.isoformat()
@@ -558,7 +567,7 @@ def main():
             f.write(f"max: {monthly_all_region_pair_max_value}\n")
             f.write(f"min: {monthly_all_region_pair_min_value}\n")
             f.write(f"avg: {monthly_all_region_pair_avg_value}\n")
-    get_annual_figure(args.folder_path + "/dict/")
+    get_annual_figure(args.folder_path + "/dict/", args.start_year)
 
 if __name__ == "__main__":
     main()
