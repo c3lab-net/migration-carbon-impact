@@ -126,8 +126,6 @@ def main():
     global PAYLOAD
     PAYLOAD['inter_region_route_source'] = args.inter_region_route_source
 
-    call_carbon_api(('gcloud:us-central1', 'gcloud:asia-northeast2'))
-
     all_region_pairs = get_input_list(args.group_by)
     with Pool(args.parallelism) as pool:
         _ = pool.map(call_carbon_api, all_region_pairs)
