@@ -87,11 +87,11 @@ def unique_everseen(seq, key=None):
     seen_add = seen.add
     return [x for x,k in zip(seq,key) if not (k in seen or seen_add(k))]
 
-def plot_cdf_array(array, label, include_count = False, index=0, color=None):
+def plot_cdf_array(array, label, include_count = False, index=0, color=None, override_count=None):
     x = sorted(array)
     y = np.linspace(0., 1., len(array) + 1)[1:]
     if include_count:
-        label += ' (%d)' % len(array)
+        label += ' (%d)' % (len(array) if override_count is None else override_count)
     if color is None:
         color = get_next_color()
     plt.plot(x, y, label=label, color=color, linestyle=get_linestyle(index))
