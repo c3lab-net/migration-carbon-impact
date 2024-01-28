@@ -65,7 +65,7 @@ def get_input_list(group_by: str) -> list[tuple[str, Optional[str]]]:
             input_list.append((src, None))
     return input_list
 
-PAYLOAD = {'runtime': 3600.0, 'schedule': {'type': 'onetime', 'start_time': '2022-04-10T00:00:00+00:00', 'max_delay': 82800.0}, 'dataset': {'input_size_gb': 1, 'output_size_gb': 1}, 'candidate_locations': [], 'use_prediction': False, 'carbon_data_source': 'emap', 'watts_per_core': 0, 'core_count': 1, 'original_location': 'AWS:us-east-1', 'optimize_carbon': False, 'carbon_accounting_mode': 'compute-and-network', 'inter_region_route_source': 'itdk+igdb.no-pops'}
+PAYLOAD = {'runtime': 3600.0, 'schedule': {'type': 'onetime', 'start_time': '2022-04-01T00:00:00+00:00', 'max_delay': 3600 * 24 * 1 - 3600}, 'dataset': {'input_size_gb': 1, 'output_size_gb': 1}, 'candidate_locations': [], 'use_prediction': False, 'carbon_data_source': 'emap', 'watts_per_core': 0, 'core_count': 5, 'original_location': 'AWS:us-east-1', 'optimize_carbon': False, 'carbon_accounting_mode': 'compute-and-network', 'inter_region_route_source': 'itdk+igdb.with-pops'}
 
 def get_completed_pairs(file) -> list[tuple[str, str]]:
     """Get a list of (src, dst) pairs that have already been completed.
@@ -102,16 +102,28 @@ def call_carbon_api(region_pair: tuple[str, str]):
         if 'candidate_locations' in PAYLOAD:
             del PAYLOAD['candidate_locations']
         PAYLOAD['candidate_providers'] = ['AWS', 'gcloud']
-    response = requests.get(CARBON_API_URL, json=PAYLOAD, timeout=300)
+    try:
+        response = requests.get(CARBON_API_URL, json=PAYLOAD, timeout=60)
+    except requests.exceptions.Timeout as e:
+        print(f"[ERROR] {src} -> {dst}: timeout {e}")
+        return
+    except Exception as e:
+        print(f"[ERROR] {src} -> {dst}: {e}")
+        return
 
     t_end = time.time()
     print(f"[INFO] {src} -> {dst}: {t_end - t_start:.2f} seconds", flush=True)
 
     if not response.ok:
         print(f"[ERROR] {src} -> {dst}: {response.status_code}")
-    # data = response.json(parse_float=lambda s: float('%.6g' % float(s)))
-    # print(json.dumps(data, indent=4))
-
+    try:
+        data = response.json(parse_float=lambda s: float('%.6g' % float(s)))
+        # print(src, dst, json.dumps(data['warnings'], indent=4))
+        # filename = f'{src}{"." + dst if dst else ""}.json'
+        # json.dump(data, open(filename, 'w'), indent=4)
+    except Exception as e:
+        print(f"[ERROR] {src} -> {dst}: failed to parse JSON: {e}")
+        return
 
 def main():
     args = parse_args()
