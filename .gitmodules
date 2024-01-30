@@ -13,3 +13,6 @@
 [submodule "scripts/docker/images/carboncast/carboncast"]
 	path = scripts/docker/images/carboncast/carboncast
 	url = https://github.com/carbonfirst/CarbonCast.git
+[submodule "references/alibada-clusterdata"]
+	path = references/alibada-clusterdata
+	url = https://github.com/alibaba/clusterdata.git
