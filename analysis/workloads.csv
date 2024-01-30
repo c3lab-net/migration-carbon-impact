@@ -1,0 +1,5 @@
+﻿name,watts/core,core_count,runtime_s,input_gb,output_gb,Energy (kJ),Data size (GB),compute/data (kJ/GB)
+Video resize,6.25,4,7830,138,7.53,195.75,145.53,1.345083488
+Video effect,6.25,8,7675,30,3.05,383.75,33.05,11.61119516
+Code compilation (2 hours),6.25,40,7820,24,3.9,1955,27.9,70.07168459
+Code compilation (12 hours),6.25,40,43010,132,21.45,10752.5,153.45,70.07168459
