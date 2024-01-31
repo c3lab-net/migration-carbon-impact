@@ -6,3 +6,4 @@
 /workloads/facebook-tao/dependencies/cockroachdb/workloads/
 /workloads/ML/imagenet_classes.txt
 /workloads/ML/LOC_synset_mapping.json
+*.pkl
