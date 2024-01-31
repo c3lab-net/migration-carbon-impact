@@ -95,6 +95,8 @@ class Workload:
 
 
 
+
+
 def get_best_region(original_region: str, raw_scores: dict) -> str:
     min_co2e = raw_scores[original_region]["carbon-emission"]
     min_region = original_region
@@ -109,57 +111,96 @@ def get_best_region(original_region: str, raw_scores: dict) -> str:
 CARBON_API_URL='http://yak-03.sysnet.ucsd.edu/carbon-aware-scheduler/'
 
 
-workloads = {"nw-bound": Workload(
-    runtime=timedelta()
-    ),}
 
 
 
-def make_api_call(region, t, runtime, max_delay):
-    print(region, t, runtime, max_delay)
-    response = requests.get(CARBON_API_URL, json=Workload(
-        runtime=runtime,
-        schedule=WorkloadSchedule(
-            start_time=t,
-            max_delay=max(max_delay - runtime, timedelta()),
-        ),
-        dataset=Dataset(
-            input_size_gb=250,
-            output_size_gb=250
-        ),
-        core_count=100,
-        original_location=region,
-        candidate_providers=["AWS"],
-        inter_region_route_source=InterRegionRouteSource.ITDK_AND_IGDB_WITH_POPS,
-    ).asdict())
+
+def make_api_call(region, t, max_delay, runtime, name, input_size_gb, output_size_gb, core_count, watts_per_core):
+
+    wl =  Workload(
+                        runtime=runtime,
+                        schedule=WorkloadSchedule(
+                            start_time=t,
+                            max_delay=max(max_delay - runtime, timedelta()),
+                        ),
+                        dataset=Dataset(
+                            input_size_gb=input_size_gb,
+                            output_size_gb=output_size_gb,
+                        ),
+                        core_count=core_count,
+                        original_location=region,
+                        candidate_providers=["AWS"],
+                        watts_per_core=watts_per_core,
+                        inter_region_route_source=InterRegionRouteSource.ITDK_AND_IGDB_WITH_POPS,
+                    ).asdict()
+
+
+    response = requests.get(CARBON_API_URL, json=wl)
     d = response.json(parse_float=lambda s: float('%.6g' % float(s)))
     series = pd.Series(d)
+    path = f"results_workload/{name}_{region}_{t.isoformat()}_{max_delay}.pkl"
     try:
-        series.to_pickle(f"results_uniform_time/{region}_{t.isoformat()}_{runtime}_{max_delay}.pkl")
+        series.to_pickle(path)
     except:
-        print("problem with: " + f"results_uniform_time/{region}_{t.isoformat()}_{runtime}_{max_delay}.pkl")
+        print("problem with: " + path)
 
-start_times = [datetime(year=2023, month=m, day=1, hour=h, tzinfo=timezone.utc) for m in range(1,13) for h in range(0,24,6)]
+
+
+#def make_api_call(region, t, max_delay):
+#    print(region, t, runtime, max_delay)
+#    response = requests.get(CARBON_API_URL, json=Workload(
+#        runtime=runtime,
+#        schedule=WorkloadSchedule(
+#            start_time=t,
+#            max_delay=max(max_delay - runtime, timedelta()),
+#        ),
+#        dataset=Dataset(
+#            input_size_gb=250,
+#            output_size_gb=250
+#        ),
+#        core_count=100,
+#        original_location=region,
+#        candidate_providers=["AWS"],
+#        inter_region_route_source=InterRegionRouteSource.ITDK_AND_IGDB_WITH_POPS,
+#    ).asdict())
+#    d = response.json(parse_float=lambda s: float('%.6g' % float(s)))
+#    series = pd.Series(d)
+#    try:
+#        series.to_pickle(f"results_uniform_time/{region}_{t.isoformat()}_{runtime}_{max_delay}.pkl")
+#    except:
+#        print("problem with: " + f"results_uniform_time/{region}_{t.isoformat()}_{runtime}_{max_delay}.pkl")
 
 
 if __name__ == "__main__":
+    with open('../workloads.csv', newline='') as csvfile:
+        workloads = list(csv.DictReader(csvfile))
 
+    print([w["\ufeffname"] for w in workloads])
+    
     start_times = pd.date_range(
         start=pd.to_datetime("6/1/2023").tz_localize("UTC"),
         end=pd.to_datetime("6/29/2023").tz_localize("UTC"),
         freq="1h",
     )
+    regions = ["AWS:us-west-1", "AWS:eu-central-1"]
+    delays = [timedelta(hours=h) for h in (0, 4, 24)]
 
     args = []
 
-    for region in ["AWS:us-west-1", "AWS:eu-west-2", "AWS:eu-central-1"]:
+    for region in regions:
         for t in start_times:
-            for runtime in [timedelta(hours=h) for h in range(2, 5, 2)]:
-                for max_delay in [timedelta(hours=h) for h in range(0, 25, 4)]:
-                    args.append((region, t, runtime, max_delay))
+            for max_delay in delays:
+                for workload in workloads:
+                    runtime = timedelta(seconds=float(workload["runtime_s"]))
+                    name = workload["\ufeffname"]
+                    input_size_gb = float(workload["input_gb"])
+                    output_size_gb = float(workload["output_gb"])
+                    core_count = float(workload["core_count"])
+                    watts_per_core = float(workload["watts/core"])
+                    args.append((region, t, max_delay, runtime, name, input_size_gb, output_size_gb, core_count, watts_per_core))
 
 
-    with Pool(processes=16) as pool:
+    with Pool(processes=32) as pool:
         pool.starmap(make_api_call, args)
 
 
