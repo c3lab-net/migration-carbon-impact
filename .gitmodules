@@ -16,3 +16,6 @@
 [submodule "references/alibada-clusterdata"]
 	path = references/alibada-clusterdata
 	url = https://github.com/alibaba/clusterdata.git
+[submodule "references/cidt-public-clouds"]
+	path = references/cidt-public-clouds
+	url = git@github.com:c3lab-net/cidt-public-clouds.git
